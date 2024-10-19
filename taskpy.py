@@ -8,6 +8,10 @@ import subprocess
 import configparser
 import WinTmp
 from PyQt5.QtGui import QIcon
+import os
+
+
+username = os.getlogin()
 
 
 class CustomTaskbar(QWidget):
@@ -20,7 +24,7 @@ class CustomTaskbar(QWidget):
 
     def loadConfig(self):
         config = configparser.ConfigParser()
-        config.read('ML/config.ini')
+        config.read('config.ini')
 
         self.background_color = config.get('Appearance', 'background_color')
         self.text_color = config.get('Appearance', 'text_color')
@@ -37,6 +41,14 @@ class CustomTaskbar(QWidget):
         self.tool_border_color = config.get('Tooltip', 'tool_tip_border_color')
         self.tool_padding = config.getint('Tooltip', 'tool_tip_padding')
 
+        self.hover_button_color = config.get('button', 'hover_button')
+        self.hover_padding = config.get('button', 'hover_padding')
+        self.hover_border_radius = config.get('button', 'hover_border_radius')
+        self.hover_border = config.get('button', 'hover_border')
+        self.button_border = config.get('button', 'button_border')
+        self.padding_button = config.get('button', 'padding_button')
+
+
     def initUI(self):
         self.setWindowFlags(Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint | Qt.Tool)
         self.setGeometry(0, QApplication.desktop().screenGeometry().height() - 35,
@@ -49,6 +61,18 @@ class CustomTaskbar(QWidget):
                 color: {self.text_color};    /* Taskbar text color */
                 font-size: {self.font_size}px; /* Taskbar font size */
                 border-radius: {self.border_radius}px; /* Taskbar border radius */
+            }}
+
+            QPushButton {{
+                border: {self.button_border}px;
+                padding: {self.padding_button}px;
+            }}
+
+            QPushButton:hover {{
+                background-color: {self.hover_button_color};
+                border-radius: {self.hover_border_radius}px;
+                border: {self.hover_border}px;
+                padding: {self.hover_padding}px;
             }}
 
             /* Tooltip styles */
@@ -77,18 +101,19 @@ class CustomTaskbar(QWidget):
         dock_layout.addStretch()
 
         ########################################## ADD YOUR APPS LIKE THESE 3 APPS ##########################################
-        self.addDockIcon("C:/Users/sxxve/AppData/Local/Programs/Microsoft VS Code/Code.exe", "ML/code.png", dock_layout)
-        self.addDockIcon("C:/Program Files (x86)/Steam/steam.exe", "ML/steam.png", dock_layout)
-        self.addDockIcon("C:/Windows/explorer.exe", "ML/explorer.png", dock_layout)
+        self.addDockIcon("C:/Windows/explorer.exe", "explorer.png", dock_layout)
+        self.addDockIcon("C:/Program Files/JetBrains/PyCharm Community Edition 2024.1.4/bin/pycharm64.exe", "pycharm.png", dock_layout)
+        self.addDockIcon("C:/Program Files/Mozilla Firefox", "ML/firefox.png", dock_layout)
+        self.addDockIcon(f"C:/Users/{username}/AppData/Local/Programs/Microsoft VS Code/Code.exe", "code.png", dock_layout)
+        self.addDockIcon("C:/Content Manager.exe", "ML/cm.png", dock_layout)
+        self.addDockIcon("C:/Program Files (x86)/Steam/steam.exe", "steam.png", dock_layout)
         ########################################## ADD YOUR APPS LIKE THESE 3 APPS ##########################################
-
 
         dock_layout.addStretch()
 
         time_layout = QHBoxLayout()
         self.time_label = QLabel("")
         time_layout.addWidget(self.time_label)
-
 
         main_layout.addLayout(sys_info_layout)
         main_layout.addStretch()
@@ -114,7 +139,7 @@ class CustomTaskbar(QWidget):
         """
         button = QPushButton()
         button.setIcon(QIcon(icon_path))
-        button.setStyleSheet("border: none;")  # Make the button look like an icon
+        button.setStyleSheet("border: 10px;")  # Make the button look like an icon
         button.clicked.connect(lambda: self.launchApp(app_path))
         layout.addSpacing(20)
         layout.addWidget(button)
@@ -185,7 +210,7 @@ class CustomTaskbar(QWidget):
 
     def updateTime(self):
         current_time = time.strftime("%H:%M:%S")
-        self.time_label.setText(current_time)
+        self.time_label.setText(f"|{current_time}")
 
     def updateTooltip(self):
         # Refresh the system info to get the latest data
