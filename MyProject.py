@@ -1,0 +1,222 @@
+import sys
+import psutil
+import time
+from PyQt5.QtWidgets import QApplication, QLabel, QHBoxLayout, QWidget, QToolTip, QPushButton
+from PyQt5.QtCore import Qt, QTimer, QEvent
+import pynvml
+import subprocess
+import configparser
+import WinTmp
+from PyQt5.QtGui import QIcon
+
+
+class CustomTaskbar(QWidget):
+    def __init__(self):
+        super().__init__()
+        pynvml.nvmlInit()
+        self.handle = pynvml.nvmlDeviceGetHandleByIndex(0)
+        self.loadConfig()
+        self.initUI()
+
+    def loadConfig(self):
+        config = configparser.ConfigParser()
+        config.read('ML/config.ini')
+
+        self.background_color = config.get('Appearance', 'background_color')
+        self.text_color = config.get('Appearance', 'text_color')
+        self.font_size = config.getint('Appearance', 'font_size')
+        self.border_radius = config.getint('Appearance', 'border_radius')
+        self.transparent = config.getboolean('Appearance', 'transparency')
+        if self.transparent == True:
+            self.setAttribute(Qt.WA_TranslucentBackground)
+
+        self.tool_background = config.get('Tooltip', 'tool_tip_background_color')
+        self.tool_text_color = config.get('Tooltip', 'tool_tip_text_color')
+        self.tool_font_size = config.getint('Tooltip', 'tool_tip_font_size')
+        self.tool_border_radius = config.getint('Tooltip', 'tool_tip_border_radius')
+        self.tool_border_color = config.get('Tooltip', 'tool_tip_border_color')
+        self.tool_padding = config.getint('Tooltip', 'tool_tip_padding')
+
+    def initUI(self):
+        self.setWindowFlags(Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint | Qt.Tool)
+        self.setGeometry(0, QApplication.desktop().screenGeometry().height() - 35,
+                         QApplication.desktop().screenGeometry().width(), 35)
+
+        self.setStyleSheet(f"""
+            /* Taskbar styles */
+            QWidget {{
+                background-color: {self.background_color};  /* Taskbar background color */
+                color: {self.text_color};    /* Taskbar text color */
+                font-size: {self.font_size}px; /* Taskbar font size */
+                border-radius: {self.border_radius}px; /* Taskbar border radius */
+            }}
+
+            /* Tooltip styles */
+            QToolTip {{
+                background-color: {self.tool_background};   /* Tooltip background color */
+                color: {self.tool_text_color};               /* Tooltip text color */
+                border: 1px solid {self.tool_border_color}; /* Tooltip border color */
+                padding: {self.tool_padding}px;              /* Padding around tooltip text */
+                font-size: {self.tool_font_size}px;          /* Tooltip font size */
+                border-radius: {self.tool_border_radius}px;  /* Tooltip border radius */
+            }}
+        """)
+
+        main_layout = QHBoxLayout()
+        self.setLayout(main_layout)
+
+        sys_info_layout = QHBoxLayout()
+        self.sys_info_label = QLabel("Loading...")
+        sys_info_layout.addWidget(self.sys_info_label)
+
+        self.tooltip_timer = QTimer(self)
+        self.tooltip_timer.timeout.connect(self.updateTooltip)
+        self.tooltip_timer.setInterval(1000)
+
+        dock_layout = QHBoxLayout()
+        dock_layout.addStretch()
+
+        ########################################## ADD YOUR APPS LIKE THESE 3 APPS ##########################################
+        self.addDockIcon("C:/Users/sxxve/AppData/Local/Programs/Microsoft VS Code/Code.exe", "ML/code.png", dock_layout)
+        self.addDockIcon("C:/Program Files (x86)/Steam/steam.exe", "ML/steam.png", dock_layout)
+        self.addDockIcon("C:/Windows/explorer.exe", "ML/explorer.png", dock_layout)
+        ########################################## ADD YOUR APPS LIKE THESE 3 APPS ##########################################
+
+
+        dock_layout.addStretch()
+
+        time_layout = QHBoxLayout()
+        self.time_label = QLabel("")
+        time_layout.addWidget(self.time_label)
+
+
+        main_layout.addLayout(sys_info_layout)
+        main_layout.addStretch()
+        main_layout.addLayout(dock_layout)
+        main_layout.addStretch()
+        main_layout.addLayout(time_layout)
+
+        self.updateSystemInfo()
+        timer = QTimer(self)
+        timer.timeout.connect(self.updateSystemInfo)
+        timer.start(1000)
+
+        self.updateTime()
+        time_timer = QTimer(self)
+        time_timer.timeout.connect(self.updateTime)
+        time_timer.start(1000)
+
+        self.sys_info_label.installEventFilter(self)
+
+    def addDockIcon(self, app_path, icon_path, layout):
+        """
+        Adds an icon to the dock, which will open the specified application when clicked.
+        """
+        button = QPushButton()
+        button.setIcon(QIcon(icon_path))
+        button.setStyleSheet("border: none;")  # Make the button look like an icon
+        button.clicked.connect(lambda: self.launchApp(app_path))
+        layout.addSpacing(20)
+        layout.addWidget(button)
+
+    def launchApp(self, app_path):
+            """
+            Launches an external application.
+            """
+            try:
+                subprocess.Popen(app_path)
+            except Exception as e:
+                print(f"Failed to launch {app_path}: {e}")
+
+    def get_cpu_temperature(self):
+        cpu = WinTmp.CPU_Temp()
+        if cpu == 0.0:
+            return "Please make sure you have ran this program as an Administrator"
+        return f"{cpu}°C"
+
+    def get_used_vram(self):
+        vram_used = pynvml.nvmlDeviceGetMemoryInfo(self.handle).used
+        vram_used_gb = vram_used / (1024 ** 3)
+        return vram_used_gb
+
+    def get_nvidia_gpu_usage(self):
+        try:
+            result = subprocess.run(['nvidia-smi', '--query-gpu=utilization.gpu', '--format=csv,noheader,nounits'],
+                                    stdout=subprocess.PIPE, text=True)
+            temperature = result.stdout.strip()
+            return f"{temperature}"
+        except FileNotFoundError:
+            return "nvidia-smi not found. Make sure NVIDIA drivers are installed."
+
+
+    def get_nvidia_gpu_temperature(self):
+        try:
+            result = subprocess.run(['nvidia-smi', '--query-gpu=temperature.gpu', '--format=csv,noheader,nounits'],
+                                    stdout=subprocess.PIPE, text=True)
+            temperature = result.stdout.strip()
+            return f"{temperature}"
+        except FileNotFoundError:
+            return "nvidia-smi not found. Make sure NVIDIA drivers are installed."
+
+    def get_tot_vram(self):
+        vram_total = pynvml.nvmlDeviceGetMemoryInfo(self.handle).total
+        vram_total_gb = vram_total / (1024 ** 3)
+        return vram_total_gb
+
+    def updateSystemInfo(self):
+        cpu_usage = psutil.cpu_percent()
+        cpu_temp = self.get_cpu_temperature()
+        ram_info = psutil.virtual_memory()
+        ram_usage = ram_info.percent
+        gpu_usage = self.get_nvidia_gpu_usage()
+        gpu_temp = self.get_nvidia_gpu_temperature()
+        used_vram = self.get_used_vram()
+        tot_vram = self.get_tot_vram()
+
+        cpu_freq = psutil.cpu_freq().current
+        ram_used_gb = ram_info.used / (1024 ** 3)
+        ram_total_gb = ram_info.total / (1024 ** 3)
+        self.cpu_tooltip = f"CPU Frequency: {cpu_freq:.2f} MHz\nCPU Usage: {cpu_usage}%\nCPU Temp: {cpu_temp}"
+        self.ram_tooltip = f"RAM Used: {ram_used_gb:.2f} GB / {ram_total_gb:.2f} GB\nRAM Usage: {ram_usage}%"
+        self.gpu_tooltip = f"GPU Temperature: {gpu_temp}°C\nGPU Usage: {gpu_usage}%\nGPU VRAM Used: {used_vram:.2f} GB / {tot_vram} GB"
+
+
+        self.sys_info_label.setText(f"CPU: {cpu_usage}% | RAM: {ram_usage}% | GPU: {gpu_usage}%")
+
+    def updateTime(self):
+        current_time = time.strftime("%H:%M:%S")
+        self.time_label.setText(current_time)
+
+    def updateTooltip(self):
+        # Refresh the system info to get the latest data
+        self.updateSystemInfo()
+        # Force the tooltip to update
+        QToolTip.showText(self.sys_info_label.mapToGlobal(self.sys_info_label.rect().center()),
+                          f"{self.cpu_tooltip}\n\n{self.ram_tooltip}\n\n{self.gpu_tooltip}",
+                          self.sys_info_label)
+
+    def eventFilter(self, obj, event):
+        if obj == self.sys_info_label:
+            if event.type() == QEvent.Enter:
+                self.tooltip_timer.start()
+            elif event.type() == QEvent.Leave:
+                self.tooltip_timer.stop()
+                QToolTip.hideText()
+        return super().eventFilter(obj, event)
+
+config = configparser.ConfigParser()
+config.read('ML/config.ini')
+
+tool_background = config.get('Tooltip', 'tool_tip_background_color')
+tool_text_color = config.get('Tooltip', 'tool_tip_text_color')
+tool_font_size = config.getint('Tooltip', 'tool_tip_font_size')
+tool_border_radius = config.getint('Tooltip', 'tool_tip_border_radius')
+tool_border_color = config.get('Tooltip', 'tool_tip_border_color')
+tool_padding = config.getint('Tooltip', 'tool_tip_padding')
+
+if __name__ == "__main__":
+    app = QApplication(sys.argv)
+    taskbar = CustomTaskbar()
+    taskbar.show()
+
+    sys.exit(app.exec_())
