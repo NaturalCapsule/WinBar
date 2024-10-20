@@ -22,7 +22,6 @@ class CustomTaskbar(QWidget):
         self.loadConfig()
         self.initUI()
         self.open_apps = {}
-        self.taskbar_buttons = {}
 
 
     def loadConfig(self):
