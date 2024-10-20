@@ -109,14 +109,14 @@ class CustomTaskbar(QWidget):
         dock_layout = QHBoxLayout()
         dock_layout.addStretch()
 
-        ########################################## ADD YOUR APPS LIKE THESE 3 APPS ##########################################
+        ########################################## ADD YOUR APPS LIKE THESE 6 APPS ##########################################
         self.addDockIcon("C:/Windows/explorer.exe", "explorer.png", dock_layout)
         self.addDockIcon("C:/Program Files/JetBrains/PyCharm Community Edition 2024.1.4/bin/pycharm64.exe", "pycharm.png", dock_layout)
         self.addDockIcon("C:/Program Files/Mozilla Firefox/firefox.exe", "firefox.png", dock_layout)
         self.addDockIcon(f"C:/Users/{username}/AppData/Local/Programs/Microsoft VS Code/Code.exe", "code.png", dock_layout)
         self.addDockIcon("C:/Content Manager.exe", "cm.png", dock_layout)
         self.addDockIcon("C:/Program Files (x86)/Steam/steam.exe", "steam.png", dock_layout)
-        ########################################## ADD YOUR APPS LIKE THESE 3 APPS ##########################################
+        ########################################## ADD YOUR APPS LIKE THESE 6 APPS ##########################################
 
         dock_layout.addStretch()
 
