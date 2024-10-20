@@ -9,7 +9,6 @@ import configparser
 import WinTmp
 from PyQt5.QtGui import QIcon
 import os
-import pygetwindow as gw
 import threading
 
 username = os.getlogin()
@@ -23,6 +22,7 @@ class CustomTaskbar(QWidget):
         self.loadConfig()
         self.initUI()
         self.open_apps = {}
+        self.taskbar_buttons = {}
 
 
     def loadConfig(self):
@@ -43,7 +43,11 @@ class CustomTaskbar(QWidget):
         self.tool_border_radius = config.getint('Tooltip', 'tool_tip_border_radius')
         self.tool_border_color = config.get('Tooltip', 'tool_tip_border_color')
         self.tool_padding = config.getint('Tooltip', 'tool_tip_padding')
+        self.tool_border = config.getint('Tooltip', 'tool_tip_border')
 
+
+        self.button_color = config.get('button', 'button_color')
+        self.background_button_color = config.get('button', 'backround_button_color')
         self.hover_button_color = config.get('button', 'hover_button')
         self.hover_padding = config.get('button', 'hover_padding')
         self.hover_border_radius = config.get('button', 'hover_border_radius')
@@ -73,6 +77,8 @@ class CustomTaskbar(QWidget):
             }}
 
             QPushButton {{
+                background-color: {self.background_button_color};
+                color:{self.button_color};
                 border: {self.button_border}px;
                 padding: {self.padding_button}px;
             }}
@@ -88,7 +94,7 @@ class CustomTaskbar(QWidget):
             QToolTip {{
                 background-color: {self.tool_background};   /* Tooltip background color */
                 color: {self.tool_text_color};               /* Tooltip text color */
-                border: 1px solid {self.tool_border_color}; /* Tooltip border color */
+                border: {self.tool_border}px solid {self.tool_border_color}; /* Tooltip border color */
                 padding: {self.tool_padding}px;              /* Padding around tooltip text */
                 font-size: {self.tool_font_size}px;          /* Tooltip font size */
                 border-radius: {self.tool_border_radius}px;  /* Tooltip border radius */
@@ -109,14 +115,14 @@ class CustomTaskbar(QWidget):
         dock_layout = QHBoxLayout()
         dock_layout.addStretch()
 
-        ########################################## ADD YOUR APPS LIKE THESE 3 APPS ##########################################
+        ########################################## ADD YOUR APPS LIKE THESE 6 APPS ##########################################
         self.addDockIcon("C:/Windows/explorer.exe", "explorer.png", dock_layout)
         self.addDockIcon("C:/Program Files/JetBrains/PyCharm Community Edition 2024.1.4/bin/pycharm64.exe", "pycharm.png", dock_layout)
         self.addDockIcon("C:/Program Files/Mozilla Firefox/firefox.exe", "firefox.png", dock_layout)
         self.addDockIcon(f"C:/Users/{username}/AppData/Local/Programs/Microsoft VS Code/Code.exe", "code.png", dock_layout)
         self.addDockIcon("C:/Content Manager.exe", "cm.png", dock_layout)
         self.addDockIcon("C:/Program Files (x86)/Steam/steam.exe", "steam.png", dock_layout)
-        ########################################## ADD YOUR APPS LIKE THESE 3 APPS ##########################################
+        ########################################## ADD YOUR APPS LIKE THESE 6 APPS ##########################################
 
         dock_layout.addStretch()
 
@@ -145,32 +151,29 @@ class CustomTaskbar(QWidget):
     def addDockIcon(self, app_path, icon_path, layout):
         button = QPushButton()
         button.setIcon(QIcon(icon_path))
-        button.setStyleSheet("border: 10px;")  # Make the button look like an icon
+        button.setStyleSheet("border: 10px;")
 
-        # Extract the application name from the app_path
         app_name = os.path.basename(app_path).replace(".exe", "")
 
-        # Initialize button state
         button.setProperty('app_name', app_name)
-        button.setProperty('app_pid', None)  # Track the PID of the launched process
+        button.setProperty('app_pid', None)
         button.clicked.connect(lambda: self.launchApp(app_name=app_name, app_path=app_path, button=button))
         layout.addSpacing(20)
         layout.addWidget(button)
 
-    def monitorApp(self, app_name, pid, button):
-        # Periodically check if the process is still running
-        while psutil.pid_exists(pid):
-            time.sleep(5)  # Check every second
 
-        # Once the process is no longer running, reset the button style
+    def monitorApp(self, app_name, pid, button):
+        while psutil.pid_exists(pid):
+            time.sleep(5)
+
         button.setProperty('app_pid', None)
         button.setStyleSheet("border: none;")
+
 
     def launchApp(self, app_name, app_path, button):
         current_pid = button.property('app_pid')
 
         if current_pid and psutil.pid_exists(current_pid):
-            # The application is already running; bring it to the front if supported
             self.bring_to_front(app_name)
         else:
             process = subprocess.Popen(app_path)
@@ -193,7 +196,7 @@ class CustomTaskbar(QWidget):
         cpu = WinTmp.CPU_Temp()
         if cpu == 0.0:
             return "Please make sure you have ran this program as an Administrator"
-        return f"{cpu}°C"
+        return f"{cpu:.2f}°C"
 
     def get_used_vram(self):
         vram_used = pynvml.nvmlDeviceGetMemoryInfo(self.handle).used
@@ -248,9 +251,7 @@ class CustomTaskbar(QWidget):
         self.time_label.setText(f"|{current_time}")
 
     def updateTooltip(self):
-        # Refresh the system info to get the latest data
         self.updateSystemInfo()
-        # Force the tooltip to update
         QToolTip.showText(self.sys_info_label.mapToGlobal(self.sys_info_label.rect().center()),
                           f"{self.cpu_tooltip}\n\n{self.ram_tooltip}\n\n{self.gpu_tooltip}",
                           self.sys_info_label)
