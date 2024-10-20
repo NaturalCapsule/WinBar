@@ -9,7 +9,8 @@ import configparser
 import WinTmp
 from PyQt5.QtGui import QIcon
 import os
-
+import pygetwindow as gw
+import threading
 
 username = os.getlogin()
 
@@ -21,6 +22,8 @@ class CustomTaskbar(QWidget):
         self.handle = pynvml.nvmlDeviceGetHandleByIndex(0)
         self.loadConfig()
         self.initUI()
+        self.open_apps = {}
+
 
     def loadConfig(self):
         config = configparser.ConfigParser()
@@ -48,11 +51,17 @@ class CustomTaskbar(QWidget):
         self.button_border = config.get('button', 'button_border')
         self.padding_button = config.get('button', 'padding_button')
 
+        self.active_border_color = config.get('active', 'active_border_color')
+        self.active_border = config.getint('active', 'active_border')
+        self.active_border_radius = config.getint('active', 'active_border_radius')
+        self.active_background_color = config.get('active', 'active_background_color')
 
     def initUI(self):
         self.setWindowFlags(Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint | Qt.Tool)
-        self.setGeometry(0, QApplication.desktop().screenGeometry().height() - 35,
-                         QApplication.desktop().screenGeometry().width(), 35)
+        screen_width = QApplication.desktop().screenGeometry().width()
+        taskbar_height = 40
+        self.setGeometry(0, QApplication.desktop().screenGeometry().height() - taskbar_height, screen_width, taskbar_height)
+        self.setFixedHeight(taskbar_height)
 
         self.setStyleSheet(f"""
             /* Taskbar styles */
@@ -103,9 +112,9 @@ class CustomTaskbar(QWidget):
         ########################################## ADD YOUR APPS LIKE THESE 3 APPS ##########################################
         self.addDockIcon("C:/Windows/explorer.exe", "explorer.png", dock_layout)
         self.addDockIcon("C:/Program Files/JetBrains/PyCharm Community Edition 2024.1.4/bin/pycharm64.exe", "pycharm.png", dock_layout)
-        self.addDockIcon("C:/Program Files/Mozilla Firefox", "ML/firefox.png", dock_layout)
+        self.addDockIcon("C:/Program Files/Mozilla Firefox/firefox.exe", "firefox.png", dock_layout)
         self.addDockIcon(f"C:/Users/{username}/AppData/Local/Programs/Microsoft VS Code/Code.exe", "code.png", dock_layout)
-        self.addDockIcon("C:/Content Manager.exe", "ML/cm.png", dock_layout)
+        self.addDockIcon("C:/Content Manager.exe", "cm.png", dock_layout)
         self.addDockIcon("C:/Program Files (x86)/Steam/steam.exe", "steam.png", dock_layout)
         ########################################## ADD YOUR APPS LIKE THESE 3 APPS ##########################################
 
@@ -134,24 +143,51 @@ class CustomTaskbar(QWidget):
         self.sys_info_label.installEventFilter(self)
 
     def addDockIcon(self, app_path, icon_path, layout):
-        """
-        Adds an icon to the dock, which will open the specified application when clicked.
-        """
         button = QPushButton()
         button.setIcon(QIcon(icon_path))
         button.setStyleSheet("border: 10px;")  # Make the button look like an icon
-        button.clicked.connect(lambda: self.launchApp(app_path))
+
+        # Extract the application name from the app_path
+        app_name = os.path.basename(app_path).replace(".exe", "")
+
+        # Initialize button state
+        button.setProperty('app_name', app_name)
+        button.setProperty('app_pid', None)  # Track the PID of the launched process
+        button.clicked.connect(lambda: self.launchApp(app_name=app_name, app_path=app_path, button=button))
         layout.addSpacing(20)
         layout.addWidget(button)
 
-    def launchApp(self, app_path):
-            """
-            Launches an external application.
-            """
-            try:
-                subprocess.Popen(app_path)
-            except Exception as e:
-                print(f"Failed to launch {app_path}: {e}")
+    def monitorApp(self, app_name, pid, button):
+        # Periodically check if the process is still running
+        while psutil.pid_exists(pid):
+            time.sleep(5)  # Check every second
+
+        # Once the process is no longer running, reset the button style
+        button.setProperty('app_pid', None)
+        button.setStyleSheet("border: none;")
+
+    def launchApp(self, app_name, app_path, button):
+        current_pid = button.property('app_pid')
+
+        if current_pid and psutil.pid_exists(current_pid):
+            # The application is already running; bring it to the front if supported
+            self.bring_to_front(app_name)
+        else:
+            process = subprocess.Popen(app_path)
+            self.open_apps[app_name] = psutil.Process(process.pid)
+
+            button.setProperty('app_pid', process.pid)
+
+            button.setStyleSheet(f"""
+                border: {self.active_border}px solid {self.active_border_color};  /* Green border to indicate running state */
+                background-color: {self.active_background_color};     /* Darker background to indicate active state */
+                border-radius: {self.active_border_radius}px;
+            """)
+
+            threading.Thread(target=self.monitorApp, args=(app_name, process.pid, button), daemon=True).start()
+
+    def bring_to_front(self, app_name):
+        pass
 
     def get_cpu_temperature(self):
         cpu = WinTmp.CPU_Temp()
@@ -205,7 +241,6 @@ class CustomTaskbar(QWidget):
         self.ram_tooltip = f"RAM Used: {ram_used_gb:.2f} GB / {ram_total_gb:.2f} GB\nRAM Usage: {ram_usage}%"
         self.gpu_tooltip = f"GPU Temperature: {gpu_temp}°C\nGPU Usage: {gpu_usage}%\nGPU VRAM Used: {used_vram:.2f} GB / {tot_vram} GB"
 
-
         self.sys_info_label.setText(f"CPU: {cpu_usage}% | RAM: {ram_usage}% | GPU: {gpu_usage}%")
 
     def updateTime(self):
@@ -230,7 +265,7 @@ class CustomTaskbar(QWidget):
         return super().eventFilter(obj, event)
 
 config = configparser.ConfigParser()
-config.read('ML/config.ini')
+config.read('config.ini')
 
 tool_background = config.get('Tooltip', 'tool_tip_background_color')
 tool_text_color = config.get('Tooltip', 'tool_tip_text_color')
