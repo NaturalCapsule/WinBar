@@ -1,6 +1,6 @@
-# this is just a basic taskbar, maybe in the future i will make it more advanced!
+# this is just a basic taskbar, maybe in the future i will make it more advance!.
 
-if you want to ro use this app copy the command below and open your terminal and paste it:
+to use this app copy the command below, open your terminal and paste it:
 `pip install -r requirements.txt`
 
 in the `config.ini` file you can change these:
