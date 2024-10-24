@@ -267,13 +267,6 @@ class CustomTaskbar(QWidget):
 config = configparser.ConfigParser()
 config.read('config.ini')
 
-tool_background = config.get('Tooltip', 'tool_tip_background_color')
-tool_text_color = config.get('Tooltip', 'tool_tip_text_color')
-tool_font_size = config.getint('Tooltip', 'tool_tip_font_size')
-tool_border_radius = config.getint('Tooltip', 'tool_tip_border_radius')
-tool_border_color = config.get('Tooltip', 'tool_tip_border_color')
-tool_padding = config.getint('Tooltip', 'tool_tip_padding')
-
 if __name__ == "__main__":
     app = QApplication(sys.argv)
     taskbar = CustomTaskbar()
