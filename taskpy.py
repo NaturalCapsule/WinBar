@@ -242,7 +242,13 @@ class CustomTaskbar(QWidget):
 
     def updateTime(self):
         # This for the battery (i know the battery should not be in this function but it is what it is.)
-        battery = psutil.sensors_battery()
+        try:
+            battery = psutil.sensors_battery()[0]
+            battery_plugged = psutil.sensors_battery()[2]
+
+        except TypeError:
+            battery = "Something is wrong!."
+            battery_plugged = "Something is wrong"
 
         if battery is None:
             battery = "Something is wrong!."
@@ -251,23 +257,23 @@ class CustomTaskbar(QWidget):
 
         batteries = {"Battery-full": "","battery-three-quarters": "", "battery-half": "", "battery-quarter": "", "battery-low": "", "battery-charging": ""}
 
-        if battery is not None and battery == 100:
+        if battery is not None and battery_plugged:
+            battery_icon = batteries.get("battery-charging")
+
+        elif battery is not None and battery == 100:
             battery_icon = batteries.get("battery-full")
 
         elif battery is not None and battery >= 60 and battery < 100:
             battery_icon = batteries.get("battery-three-quarters")
         
-        elif battery is not None and battery <= 60 and battery >= 40:
+        elif battery is not None and battery < 60 and battery >= 40:
             battery_icon = batteries.get("battery-half")
 
         elif battery is not None and battery <= 59 and battery >= 40:
-            battery_icon = batteries.get("battery-quarter")
+           battery_icon = batteries.get("battery-quarter")
 
         elif battery is not None and battery <= 39 and battery >= 10:
             battery_icon = batteries.get("battery-low")
-
-
-
 
         current_time = time.strftime("%H:%M:%S")
         self.time_label.setText(f"{battery_icon} {battery}|{current_time}")
