@@ -107,6 +107,7 @@ class CustomTaskbar(QWidget):
         self.sys_info_label = QLabel("Loading...")
         sys_info_layout.addWidget(self.sys_info_label)
 
+
         self.tooltip_timer = QTimer(self)
         self.tooltip_timer.timeout.connect(self.updateTooltip)
         self.tooltip_timer.setInterval(1000)
@@ -170,26 +171,19 @@ class CustomTaskbar(QWidget):
 
 
     def launchApp(self, app_name, app_path, button):
-        current_pid = button.property('app_pid')
 
-        if current_pid and psutil.pid_exists(current_pid):
-            self.bring_to_front(app_name)
-        else:
-            process = subprocess.Popen(app_path)
-            self.open_apps[app_name] = psutil.Process(process.pid)
+        process = subprocess.Popen(app_path)
+        self.open_apps[app_name] = psutil.Process(process.pid)
 
-            button.setProperty('app_pid', process.pid)
+        button.setProperty('app_pid', process.pid)
 
-            button.setStyleSheet(f"""
-                border: {self.active_border}px solid {self.active_border_color};  /* Green border to indicate running state */
-                background-color: {self.active_background_color};     /* Darker background to indicate active state */
-                border-radius: {self.active_border_radius}px;
-            """)
+        button.setStyleSheet(f"""
+            border: {self.active_border}px solid {self.active_border_color};  /* Green border to indicate running state */
+            background-color: {self.active_background_color};     /* Darker background to indicate active state */
+            border-radius: {self.active_border_radius}px;
+        """)
 
-            threading.Thread(target=self.monitorApp, args=(app_name, process.pid, button), daemon=True).start()
-
-    def bring_to_front(self, app_name):
-        pass
+        threading.Thread(target=self.monitorApp, args=(app_name, process.pid, button), daemon=True).start()
 
     def get_cpu_temperature(self):
         cpu = WinTmp.CPU_Temp()
@@ -221,6 +215,7 @@ class CustomTaskbar(QWidget):
         except FileNotFoundError:
             return "nvidia-smi not found. Make sure NVIDIA drivers are installed."
 
+
     def get_tot_vram(self):
         vram_total = pynvml.nvmlDeviceGetMemoryInfo(self.handle).total
         vram_total_gb = vram_total / (1024 ** 3)
@@ -246,8 +241,36 @@ class CustomTaskbar(QWidget):
         self.sys_info_label.setText(f"CPU: {cpu_usage}% | RAM: {ram_usage}% | GPU: {gpu_usage}%")
 
     def updateTime(self):
+        # This for the battery (i know the battery should not be in this function but it is what it is.)
+        battery = psutil.sensors_battery()
+
+        if battery is None:
+            battery = "Something is wrong!."
+
+        battery_icon = ''
+
+        batteries = {"Battery-full": "","battery-three-quarters": "", "battery-half": "", "battery-quarter": "", "battery-low": "", "battery-charging": ""}
+
+        if battery is not None and battery == 100:
+            battery_icon = batteries.get("battery-full")
+
+        elif battery is not None and battery >= 60 and battery < 100:
+            battery_icon = batteries.get("battery-three-quarters")
+        
+        elif battery is not None and battery <= 60 and battery >= 40:
+            battery_icon = batteries.get("battery-half")
+
+        elif battery is not None and battery <= 59 and battery >= 40:
+            battery_icon = batteries.get("battery-quarter")
+
+        elif battery is not None and battery <= 39 and battery >= 10:
+            battery_icon = batteries.get("battery-low")
+
+
+
+
         current_time = time.strftime("%H:%M:%S")
-        self.time_label.setText(f"|{current_time}")
+        self.time_label.setText(f"{battery_icon} {battery}|{current_time}")
 
     def updateTooltip(self):
         self.updateSystemInfo()
@@ -267,12 +290,6 @@ class CustomTaskbar(QWidget):
 config = configparser.ConfigParser()
 config.read('config.ini')
 
-tool_background = config.get('Tooltip', 'tool_tip_background_color')
-tool_text_color = config.get('Tooltip', 'tool_tip_text_color')
-tool_font_size = config.getint('Tooltip', 'tool_tip_font_size')
-tool_border_radius = config.getint('Tooltip', 'tool_tip_border_radius')
-tool_border_color = config.get('Tooltip', 'tool_tip_border_color')
-tool_padding = config.getint('Tooltip', 'tool_tip_padding')
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
