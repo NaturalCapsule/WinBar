@@ -187,8 +187,9 @@ class CustomTaskbar(QWidget):
 
     def get_cpu_temperature(self):
         cpu = WinTmp.CPU_Temp()
-        if cpu == 0.0:
+        if cpu == 0.0 or cpu is None:
             return "Please make sure you have ran this program as an Administrator"
+
         return f"{cpu:.2f}°C"
 
     def get_used_vram(self):
@@ -247,32 +248,32 @@ class CustomTaskbar(QWidget):
             battery_plugged = psutil.sensors_battery()[2]
 
         except TypeError:
-            battery = "Something is wrong!."
-            battery_plugged = "Something is wrong"
+            battery = ''
+            battery_plugged = ''
 
         if battery is None:
-            battery = "Something is wrong!."
+            battery = ''
 
-        battery_icon = ''
+        battery_icon = "  "
 
-        batteries = {"Battery-full": "","battery-three-quarters": "", "battery-half": "", "battery-quarter": "", "battery-low": "", "battery-charging": ""}
+        batteries = {"Battery-full": "  ","battery-three-quarters": "  ", "battery-half": "  ", "battery-quarter": "  ", "battery-low": "  ", "battery-charging": "  "}
 
-        if battery is not None and battery_plugged:
+        if battery != '' and battery_plugged:
             battery_icon = batteries.get("battery-charging")
 
-        elif battery is not None and battery == 100:
+        elif battery != '' and battery == 100:
             battery_icon = batteries.get("battery-full")
 
-        elif battery is not None and battery >= 60 and battery < 100:
+        elif battery != '' and battery >= 60 and battery < 100:
             battery_icon = batteries.get("battery-three-quarters")
         
-        elif battery is not None and battery < 60 and battery >= 40:
+        elif battery != '' and battery < 60 and battery >= 40:
             battery_icon = batteries.get("battery-half")
 
-        elif battery is not None and battery <= 59 and battery >= 40:
+        elif battery != '' and battery <= 59 and battery >= 40:
            battery_icon = batteries.get("battery-quarter")
 
-        elif battery is not None and battery <= 39 and battery >= 10:
+        elif battery != '' and battery <= 39 and battery >= 10:
             battery_icon = batteries.get("battery-low")
 
         current_time = time.strftime("%H:%M:%S")
