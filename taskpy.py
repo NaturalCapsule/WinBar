@@ -10,6 +10,7 @@ import WinTmp
 from PyQt5.QtGui import QIcon
 import os
 import threading
+from message import messagebox
 
 username = os.getlogin()
 
@@ -24,10 +25,17 @@ class CustomTaskbar(QWidget):
         self.open_apps = {}
 
 
+
     def loadConfig(self):
         config = configparser.ConfigParser()
         config.read('config.ini')
 
+
+        ##### THIS IS A TEST (FOR DEBUGGING PURPOSES)
+        self.taskbar_height_warning = config.getboolean('Appearance', 'taskbar_height_warning')
+        ##### THIS IS A TEST (FOR DEBUGGING PURPOSES)
+
+        self.taskbar_height = config.getint('Appearance', 'taskbar_height')
         self.background_color = config.get('Appearance', 'background_color')
         self.text_color = config.get('Appearance', 'text_color')
         self.font_size = config.getint('Appearance', 'font_size')
@@ -59,12 +67,20 @@ class CustomTaskbar(QWidget):
         self.active_border_radius = config.getint('active', 'active_border_radius')
         self.active_background_color = config.get('active', 'active_background_color')
 
+    def taskbar_warning(self):
+        if self.taskbar_height > 80:
+            messagebox()
+            sys.exit()
+
     def initUI(self):
         self.setWindowFlags(Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint | Qt.Tool)
         screen_width = QApplication.desktop().screenGeometry().width()
-        taskbar_height = 40
+        taskbar_height = self.taskbar_height
         self.setGeometry(0, QApplication.desktop().screenGeometry().height() - taskbar_height, screen_width, taskbar_height)
         self.setFixedHeight(taskbar_height)
+
+        if self.taskbar_height_warning:
+            self.taskbar_warning()
 
         self.setStyleSheet(f"""
             /* Taskbar styles */
@@ -254,9 +270,10 @@ class CustomTaskbar(QWidget):
         if battery is None:
             battery = ''
 
-        battery_icon = "  "
+        # for Debugging purposes!
+        battery_icon = ''
 
-        batteries = {"Battery-full": "  ","battery-three-quarters": "  ", "battery-half": "  ", "battery-quarter": "  ", "battery-low": "  ", "battery-charging": "  "}
+        batteries = {"Battery-full": "  ","battery-three-quarters": "  ", "battery-half": "  ", "battery-quarter": "  ", "battery-low": "  ", "battery-charging": "  ", "battery-empty": "  "}
 
         if battery != '' and battery_plugged:
             battery_icon = batteries.get("battery-charging")
@@ -276,8 +293,13 @@ class CustomTaskbar(QWidget):
         elif battery != '' and battery <= 39 and battery >= 10:
             battery_icon = batteries.get("battery-low")
 
+        elif battery != '' and battery < 10:
+            battery_icon = batteries.get("battery-empty")
+
         current_time = time.strftime("%H:%M:%S")
         self.time_label.setText(f"{battery_icon} {battery}|{current_time}")
+        # self.time_label.setText(f"<img src='battery_images/battery_img.svg' height='15'> {battery}|{current_time}")
+
 
     def updateTooltip(self):
         self.updateSystemInfo()
