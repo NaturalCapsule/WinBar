@@ -2,7 +2,7 @@ import sys
 import psutil
 import time
 from PyQt5.QtWidgets import QApplication, QLabel, QHBoxLayout, QWidget, QToolTip, QPushButton
-from PyQt5.QtCore import Qt, QTimer, QEvent
+from PyQt5.QtCore import Qt, QTimer, QEvent, QPoint, QObject
 import pynvml
 import subprocess
 import configparser
@@ -10,7 +10,11 @@ import WinTmp
 from PyQt5.QtGui import QIcon
 import os
 import threading
-from message import messagebox
+
+import pyuac
+import glob
+import shutil
+import tkinter.messagebox as message
 
 username = os.getlogin()
 
@@ -23,7 +27,8 @@ class CustomTaskbar(QWidget):
         self.loadConfig()
         self.initUI()
         self.open_apps = {}
-
+        if not pyuac.isUserAdmin():
+            pyuac.runAsAdmin()
 
 
     def loadConfig(self):
@@ -31,9 +36,7 @@ class CustomTaskbar(QWidget):
         config.read('config.ini')
 
 
-        ##### THIS IS A TEST (FOR DEBUGGING PURPOSES)
         self.taskbar_height_warning = config.getboolean('Appearance', 'taskbar_height_warning')
-        ##### THIS IS A TEST (FOR DEBUGGING PURPOSES)
 
         self.taskbar_height = config.getint('Appearance', 'taskbar_height')
         self.background_color = config.get('Appearance', 'background_color')
@@ -67,10 +70,39 @@ class CustomTaskbar(QWidget):
         self.active_border_radius = config.getint('active', 'active_border_radius')
         self.active_background_color = config.get('active', 'active_background_color')
 
+        self.trash_layout: int = config.getint('trash', 'trash_layout')
+
+    def messagebox(self):
+        message.showwarning("TaskBar Height is out of bounds!", "This warning message indicates that you set the taskbar height way too high, please lower it.\n\nBut hey who gives a shit this is an open source project, if you still wannna change it,\nGo to the config.ini file and set the taskbar_height_warning to 'False'!... :)")
+
+
     def taskbar_warning(self):
         if self.taskbar_height > 80:
-            messagebox()
+            self.messagebox()
             sys.exit()
+
+    def layout1(self, main_layout, sys_info_layout, trash_layout, dock_layout, time_layout):
+        main_layout.addLayout(sys_info_layout)
+        main_layout.addLayout(trash_layout)
+        main_layout.addStretch()
+        main_layout.addLayout(dock_layout)
+        main_layout.addStretch()
+        main_layout.addLayout(time_layout)
+
+    def layout2(self, main_layout, sys_info_layout, trash_layout, dock_layout, time_layout):
+        main_layout.addLayout(sys_info_layout)
+        main_layout.addStretch()
+        main_layout.addLayout(dock_layout)
+        main_layout.addStretch()
+        main_layout.addLayout(trash_layout)
+        main_layout.addLayout(time_layout)
+
+    def layout3(self, main_layout, sys_info_layout, dock_layout, time_layout):
+        main_layout.addLayout(sys_info_layout)
+        main_layout.addStretch()
+        main_layout.addLayout(dock_layout)
+        main_layout.addStretch()
+        main_layout.addLayout(time_layout)
 
     def initUI(self):
         self.setWindowFlags(Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint | Qt.Tool)
@@ -119,6 +151,8 @@ class CustomTaskbar(QWidget):
         main_layout = QHBoxLayout()
         self.setLayout(main_layout)
 
+        trash_layout = QHBoxLayout()
+
         sys_info_layout = QHBoxLayout()
         self.sys_info_label = QLabel("Loading...")
         sys_info_layout.addWidget(self.sys_info_label)
@@ -140,17 +174,20 @@ class CustomTaskbar(QWidget):
         self.addDockIcon("C:/Program Files (x86)/Steam/steam.exe", "steam.png", dock_layout)
         ########################################## ADD YOUR APPS LIKE THESE 6 APPS ##########################################
 
+        self.trash_button(trash_layout)
+
         dock_layout.addStretch()
 
         time_layout = QHBoxLayout()
         self.time_label = QLabel("")
         time_layout.addWidget(self.time_label)
 
-        main_layout.addLayout(sys_info_layout)
-        main_layout.addStretch()
-        main_layout.addLayout(dock_layout)
-        main_layout.addStretch()
-        main_layout.addLayout(time_layout)
+        if self.trash_layout == 0:
+            self.layout3(main_layout, sys_info_layout, dock_layout, time_layout)
+        elif self.trash_layout == 2:
+            self.layout2(main_layout, sys_info_layout, trash_layout, dock_layout, time_layout)
+        else:
+            self.layout1(main_layout, sys_info_layout, trash_layout, dock_layout, time_layout)
 
         self.updateSystemInfo()
         timer = QTimer(self)
@@ -177,6 +214,72 @@ class CustomTaskbar(QWidget):
         layout.addSpacing(20)
         layout.addWidget(button)
 
+
+    def delete_temp_files(self):
+        temp_paths = [r"C:\Windows\Temp\*", fr"C:\Users\{username}\AppData\Local\Temp\*"]
+
+        for temp_path in temp_paths:
+            # Use glob to get all directories in the directory matching the pattern
+            files = glob.glob(temp_path)
+
+            for file in files:
+                try:
+                    # Only delete directories, skip .txt files
+                    if os.path.isdir(file):
+                        shutil.rmtree(file)  # Remove directories
+                        print(f"Deleted directory: {file}")
+                    else:
+                        # Skip text files
+                        if file.endswith('.txt'):
+                            print(f"Skipped a file: {file}")
+                        else:
+                            os.remove(file)  # Optionally, remove other non-text files (if needed)
+                except PermissionError as e:
+                    print(f"Permission error deleting {file}: {e}. Skipping.")
+                except OSError as e:
+                    print(f"Error deleting {file}: {e}. Skipping.")
+
+    def trash_button(self, layout):
+        self.button = QPushButton(f"")
+        self.button.setStyleSheet(f"""
+            QPushButton {{
+                background-color: {self.background_color};
+                color: {self.text_color};
+                font-size: {self.font_size}px;
+                border-radius: {self.border_radius}px;
+                border: 10px;
+            }}
+            QPushButton:hover {{
+                background-color: {self.hover_button_color};
+                border-radius: {self.hover_border_radius}px;
+                border: {self.hover_border}px;
+                padding: {self.padding_button}px;
+            }}
+        """)
+
+
+        self.button.setToolTip("This button deletes all the temporary files which stored in your system!, Make sure you have ran this as Administrator!")
+        self.button.clicked.connect(self.delete_temp_files)
+        layout.addWidget(self.button)
+        self.button.enterEvent = self.show_tooltip_above
+        self.button.leaveEvent = self.hide_tooltip
+
+    def show_tooltip_above(self, event):
+
+        tooltip_position = self.button.mapToGlobal(QPoint(0, -self.button.height() - 40))
+        QToolTip.showText(tooltip_position, self.button.toolTip(), self.button)
+        event.accept()
+
+    def hide_tooltip(self, event):
+        QToolTip.hideText()
+        event.accept()
+
+    def eventfilter(self, source, event):
+        if source == self.button and event.type() == QEvent.ToolTip:
+            tooltip_position = source.mapToGlobal(QPoint(0, -source.height() - 20))
+            QToolTip.showText(tooltip_position, source.toolTip(), source)
+            return True
+        return super().eventfilter(source, event)
 
     def monitorApp(self, app_name, pid, button):
         while psutil.pid_exists(pid):
@@ -270,7 +373,6 @@ class CustomTaskbar(QWidget):
         if battery is None:
             battery = ''
 
-        # for Debugging purposes!
         battery_icon = ''
 
         batteries = {"Battery-full": "  ","battery-three-quarters": "  ", "battery-half": "  ", "battery-quarter": "  ", "battery-low": "  ", "battery-charging": "  ", "battery-empty": "  "}
@@ -298,7 +400,6 @@ class CustomTaskbar(QWidget):
 
         current_time = time.strftime("%H:%M:%S")
         self.time_label.setText(f"{battery_icon} {battery}|{current_time}")
-        # self.time_label.setText(f"<img src='battery_images/battery_img.svg' height='15'> {battery}|{current_time}")
 
 
     def updateTooltip(self):
