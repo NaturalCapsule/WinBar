@@ -2,19 +2,17 @@ import sys
 import psutil
 import time
 from PyQt5.QtWidgets import QApplication, QLabel, QHBoxLayout, QWidget, QToolTip, QPushButton
-from PyQt5.QtCore import Qt, QTimer, QEvent, QPoint, QObject
+from PyQt5.QtCore import Qt, QTimer, QEvent, QPoint
 import pynvml
 import subprocess
 import configparser
 import WinTmp
-from PyQt5.QtGui import QIcon
 import os
 import threading
-
-import pyuac
 import glob
 import shutil
 import tkinter.messagebox as message
+from docks import DockApp
 
 username = os.getlogin()
 
@@ -27,50 +25,39 @@ class CustomTaskbar(QWidget):
         self.loadConfig()
         self.initUI()
         self.open_apps = {}
-        if not pyuac.isUserAdmin():
-            pyuac.runAsAdmin()
-
 
     def loadConfig(self):
         config = configparser.ConfigParser()
         config.read('config.ini')
 
-
-        self.taskbar_height_warning = config.getboolean('Appearance', 'taskbar_height_warning')
-
-        self.taskbar_height = config.getint('Appearance', 'taskbar_height')
-        self.background_color = config.get('Appearance', 'background_color')
-        self.text_color = config.get('Appearance', 'text_color')
-        self.font_size = config.getint('Appearance', 'font_size')
-        self.border_radius = config.getint('Appearance', 'border_radius')
+        self.taskbar_height_warning = config.getboolean('Appearance', 'taskbarHeightWarning')
+        self.taskbar_height = config.getint('Appearance', 'taskbarHeight')
+        self.background_color = config.get('Appearance', 'backgroundColor')
+        self.text_color = config.get('Appearance', 'textColor')
+        self.font_size = config.getint('Appearance', 'fontSize')
+        self.border_radius = config.getint('Appearance', 'borderRadius')
         self.transparent = config.getboolean('Appearance', 'transparency')
         if self.transparent == True:
             self.setAttribute(Qt.WA_TranslucentBackground)
 
-        self.tool_background = config.get('Tooltip', 'tool_tip_background_color')
-        self.tool_text_color = config.get('Tooltip', 'tool_tip_text_color')
-        self.tool_font_size = config.getint('Tooltip', 'tool_tip_font_size')
-        self.tool_border_radius = config.getint('Tooltip', 'tool_tip_border_radius')
-        self.tool_border_color = config.get('Tooltip', 'tool_tip_border_color')
-        self.tool_padding = config.getint('Tooltip', 'tool_tip_padding')
-        self.tool_border = config.getint('Tooltip', 'tool_tip_border')
+        self.tool_background = config.get('Tooltip', 'toolTipBackgroundColor')
+        self.tool_text_color = config.get('Tooltip', 'toolTipTextColor')
+        self.tool_font_size = config.getint('Tooltip', 'toolTipFontSize')
+        self.tool_border_radius = config.getint('Tooltip', 'toolTipBorderRadius')
+        self.tool_border_color = config.get('Tooltip', 'toolTipBorderColor')
+        self.tool_padding = config.getint('Tooltip', 'toolTipPadding')
+        self.tool_border = config.getint('Tooltip', 'toolTipBorder')
 
+        self.button_color = config.get('button', 'buttonColor')
+        self.background_button_color = config.get('button', 'backroundButtonColor')
+        self.hover_button_color = config.get('button', 'hoverButton')
+        self.hover_padding = config.get('button', 'hoverPadding')
+        self.hover_border_radius = config.get('button', 'hoverBorderRadius')
+        self.hover_border = config.get('button', 'hoverBorder')
+        self.button_border = config.get('button', 'buttonBorder')
+        self.padding_button = config.get('button', 'paddingButton')
 
-        self.button_color = config.get('button', 'button_color')
-        self.background_button_color = config.get('button', 'backround_button_color')
-        self.hover_button_color = config.get('button', 'hover_button')
-        self.hover_padding = config.get('button', 'hover_padding')
-        self.hover_border_radius = config.get('button', 'hover_border_radius')
-        self.hover_border = config.get('button', 'hover_border')
-        self.button_border = config.get('button', 'button_border')
-        self.padding_button = config.get('button', 'padding_button')
-
-        self.active_border_color = config.get('active', 'active_border_color')
-        self.active_border = config.getint('active', 'active_border')
-        self.active_border_radius = config.getint('active', 'active_border_radius')
-        self.active_background_color = config.get('active', 'active_background_color')
-
-        self.trash_layout: int = config.getint('trash', 'trash_layout')
+        self.trash_layout: int = config.getint('trash', 'trashLayout')
 
     def messagebox(self):
         message.showwarning("TaskBar Height is out of bounds!", "This warning message indicates that you set the taskbar height way too high, please lower it.\n\nBut hey who gives a shit this is an open source project, if you still wannna change it,\nGo to the config.ini file and set the taskbar_height_warning to 'False'!... :)")
@@ -165,14 +152,7 @@ class CustomTaskbar(QWidget):
         dock_layout = QHBoxLayout()
         dock_layout.addStretch()
 
-        ########################################## ADD YOUR APPS LIKE THESE 6 APPS ##########################################
-        self.addDockIcon("C:/Windows/explorer.exe", "explorer.png", dock_layout)
-        self.addDockIcon("C:/Program Files/JetBrains/PyCharm Community Edition 2024.1.4/bin/pycharm64.exe", "pycharm.png", dock_layout)
-        self.addDockIcon("C:/Program Files/Mozilla Firefox/firefox.exe", "firefox.png", dock_layout)
-        self.addDockIcon(f"C:/Users/{username}/AppData/Local/Programs/Microsoft VS Code/Code.exe", "code.png", dock_layout)
-        self.addDockIcon("C:/Content Manager.exe", "cm.png", dock_layout)
-        self.addDockIcon("C:/Program Files (x86)/Steam/steam.exe", "steam.png", dock_layout)
-        ########################################## ADD YOUR APPS LIKE THESE 6 APPS ##########################################
+        docks = DockApp(dock_layout)
 
         self.trash_button(trash_layout)
 
@@ -201,39 +181,20 @@ class CustomTaskbar(QWidget):
 
         self.sys_info_label.installEventFilter(self)
 
-    def addDockIcon(self, app_path, icon_path, layout):
-        button = QPushButton()
-        button.setIcon(QIcon(icon_path))
-        button.setStyleSheet("border: 10px;")
-
-        app_name = os.path.basename(app_path).replace(".exe", "")
-
-        button.setProperty('app_name', app_name)
-        button.setProperty('app_pid', None)
-        button.clicked.connect(lambda: self.launchApp(app_name=app_name, app_path=app_path, button=button))
-        layout.addSpacing(20)
-        layout.addWidget(button)
-
 
     def delete_temp_files(self):
         temp_paths = [r"C:\Windows\Temp\*", fr"C:\Users\{username}\AppData\Local\Temp\*"]
 
         for temp_path in temp_paths:
-            # Use glob to get all directories in the directory matching the pattern
             files = glob.glob(temp_path)
 
             for file in files:
                 try:
-                    # Only delete directories, skip .txt files
                     if os.path.isdir(file):
-                        shutil.rmtree(file)  # Remove directories
+                        shutil.rmtree(file)
                         print(f"Deleted directory: {file}")
                     else:
-                        # Skip text files
-                        if file.endswith('.txt'):
-                            print(f"Skipped a file: {file}")
-                        else:
-                            os.remove(file)  # Optionally, remove other non-text files (if needed)
+                        os.remove(file)
                 except PermissionError as e:
                     print(f"Permission error deleting {file}: {e}. Skipping.")
                 except OSError as e:
@@ -258,14 +219,13 @@ class CustomTaskbar(QWidget):
         """)
 
 
-        self.button.setToolTip("This button deletes all the temporary files which stored in your system!, Make sure you have ran this as Administrator!")
+        self.button.setToolTip("This button deletes all the temporary files which are stored in your system!.")
         self.button.clicked.connect(self.delete_temp_files)
         layout.addWidget(self.button)
         self.button.enterEvent = self.show_tooltip_above
         self.button.leaveEvent = self.hide_tooltip
 
     def show_tooltip_above(self, event):
-
         tooltip_position = self.button.mapToGlobal(QPoint(0, -self.button.height() - 40))
         QToolTip.showText(tooltip_position, self.button.toolTip(), self.button)
         event.accept()

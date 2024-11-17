@@ -2,3 +2,6 @@ PyQt5
 configparser
 WinTmp
 pynvml
+pyuac
+elevate
+psutil
