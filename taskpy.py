@@ -2,7 +2,7 @@ import sys
 import psutil
 import time
 from PyQt5.QtWidgets import QApplication, QLabel, QHBoxLayout, QWidget, QToolTip, QPushButton
-from PyQt5.QtCore import Qt, QTimer, QEvent, QPoint
+from PyQt5.QtCore import Qt, QTimer, QEvent, QPoint, QPropertyAnimation, QRect
 import pynvml
 import subprocess
 import configparser
@@ -69,34 +69,37 @@ class CustomTaskbar(QWidget):
             self.messagebox()
             sys.exit()
 
-    def layout1(self, main_layout, sys_info_layout, trash_layout, dock_layout, time_layout, wifi_layout):
+    def layout1(self, main_layout, sys_info_layout, trash_layout, dock_layout, time_layout, wifi_layout, battery_layout):
         main_layout.addLayout(sys_info_layout)
         main_layout.addLayout(trash_layout)
         main_layout.addStretch()
         main_layout.addLayout(dock_layout)
         main_layout.addStretch()
         main_layout.addLayout(wifi_layout)
+        main_layout.addLayout(battery_layout)
         main_layout.addLayout(time_layout)
 
-    def layout2(self, main_layout, sys_info_layout, trash_layout, dock_layout, time_layout, wifi_layout):
+    def layout2(self, main_layout, sys_info_layout, trash_layout, dock_layout, time_layout, wifi_layout, battery_layout):
         main_layout.addLayout(sys_info_layout)
         main_layout.addStretch()
         main_layout.addLayout(dock_layout)
         main_layout.addStretch()
         main_layout.addLayout(trash_layout)
         main_layout.addLayout(wifi_layout)
+        main_layout.addLayout(battery_layout)
         main_layout.addLayout(time_layout)
 
-    def layout3(self, main_layout, sys_info_layout, dock_layout, time_layout, wifi_layout):
+    def layout3(self, main_layout, sys_info_layout, dock_layout, time_layout, wifi_layout, battery_layout):
         main_layout.addLayout(sys_info_layout)
         main_layout.addStretch()
         main_layout.addLayout(dock_layout)
         main_layout.addStretch()
         main_layout.addLayout(wifi_layout)
+        main_layout.addLayout(battery_layout)
         main_layout.addLayout(time_layout)
 
     def initUI(self):
-        self.setWindowFlags(Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint | Qt.Tool)
+        self.setWindowFlags(Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint | Qt.ToolTip)
         screen_width = QApplication.desktop().screenGeometry().width()
         taskbar_height = self.taskbar_height
         self.setGeometry(0, QApplication.desktop().screenGeometry().height() - taskbar_height, screen_width, taskbar_height)
@@ -168,16 +171,20 @@ class CustomTaskbar(QWidget):
         self.time_label = QLabel("")
         time_layout.addWidget(self.time_label)
 
+        battery_layout = QHBoxLayout()
+        self.battery_label = QLabel("")
+        battery_layout.addWidget(self.battery_label)
+
         wifi_layout = QHBoxLayout()
         self.wifi_label = QLabel("")
         wifi_layout.addWidget(self.wifi_label)
 
         if self.trash_layout == 0:
-            self.layout3(main_layout, sys_info_layout, dock_layout, time_layout, wifi_layout)
+            self.layout3(main_layout, sys_info_layout, dock_layout, time_layout, wifi_layout, battery_layout)
         elif self.trash_layout == 2:
-            self.layout2(main_layout, sys_info_layout, trash_layout, dock_layout, time_layout, wifi_layout)
+            self.layout2(main_layout, sys_info_layout, trash_layout, dock_layout, time_layout, wifi_layout, battery_layout)
         else:
-            self.layout1(main_layout, sys_info_layout, trash_layout, dock_layout, time_layout, wifi_layout)
+            self.layout1(main_layout, sys_info_layout, trash_layout, dock_layout, time_layout, wifi_layout, battery_layout)
 
         self.updateSystemInfo()
         timer = QTimer(self)
@@ -195,6 +202,13 @@ class CustomTaskbar(QWidget):
         self.wifi_label.enterEvent = self.show_tooltip_above_wifi
         self.wifi_label.leaveEvent = self.hide_tooltip
         update_wifi.start(1000)
+
+        self.updateBattery()
+        update_battery = QTimer(self)
+        update_battery.timeout.connect(self.updateBattery)
+        self.battery_label.enterEvent = self.show_tooltip_above_battery
+        self.battery_label.leaveEvent = self.hide_tooltip
+        update_battery.start(1000)
 
         self.sys_info_label.installEventFilter(self)
 
@@ -235,7 +249,6 @@ class CustomTaskbar(QWidget):
             }}
         """)
 
-
         self.button.setToolTip("This button deletes all the temporary files which are stored in your system!.")
         self.button.clicked.connect(self.delete_temp_files)
         layout.addWidget(self.button)
@@ -248,6 +261,11 @@ class CustomTaskbar(QWidget):
         QToolTip.showText(tooltip_position, self.wifi_label.toolTip(), self.wifi_label)
         event.accept()
 
+    def show_tooltip_above_battery(self, event):
+        tooltip_position = self.battery_label.mapToGlobal(QPoint(0, -self.battery_label.height() - 40))
+        QToolTip.showText(tooltip_position, self.battery_label.toolTip(), self.battery_label)
+        event.accept()
+
     def show_tooltip_above_trash(self, event):
         tooltip_position = self.button.mapToGlobal(QPoint(0, -self.button.height() - 40))
         QToolTip.showText(tooltip_position, self.button.toolTip(), self.button)
@@ -257,12 +275,15 @@ class CustomTaskbar(QWidget):
         QToolTip.hideText()
         event.accept()
 
+
+
     def monitorApp(self, app_name, pid, button):
         while psutil.pid_exists(pid):
             time.sleep(5)
 
         button.setProperty('app_pid', None)
         button.setStyleSheet("border: none;")
+
 
     def launchApp(self, app_name, app_path, button):
 
@@ -335,8 +356,11 @@ class CustomTaskbar(QWidget):
 
         self.sys_info_label.setText(f"CPU: {cpu_usage}% | RAM: {ram_usage}% | GPU: {gpu_usage}%")
 
-    def updateTime(self):
-        # This for the battery (i know the battery should not be in this function but it is what it is.)
+
+    def batteryLevel(self):
+        pass
+
+    def updateBattery(self):
         try:
             battery = psutil.sensors_battery()[0]
             battery_plugged = psutil.sensors_battery()[2]
@@ -349,6 +373,7 @@ class CustomTaskbar(QWidget):
             battery = ''
 
         battery_icon = ''
+
 
         batteries = {"Battery-full": "  ","battery-three-quarters": "  ", "battery-half": "  ", "battery-quarter": "  ", "battery-low": "  ", "battery-charging": "  ", "battery-empty": "  "}
 
@@ -372,13 +397,20 @@ class CustomTaskbar(QWidget):
 
         elif battery != '' and battery < 10:
             battery_icon = batteries.get("battery-empty")
-        
-        
+
+        if battery == '':
+            self.battery_label.setText("")
+            self.battery_label.setToolTip("")
+        else:
+            self.battery_label.setText(f"{battery_icon} {battery}%")
+            self.battery_label.setToolTip(f"Battery Level: {battery}%")
+
+    def updateTime(self):
         today = date.today()
         today = today.strftime("%d %B %Y")
 
         current_time = time.strftime("%H:%M")
-        self.time_label.setText(f"{battery_icon} {battery}| {current_time} | {today}")
+        self.time_label.setText(f"{current_time} | {today}")
 
     def updateWifiLabel(self):
         is_connected = ConnectedToWifi.is_connectToInternet()

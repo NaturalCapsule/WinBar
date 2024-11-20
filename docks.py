@@ -13,10 +13,9 @@ username = os.getlogin()
 
 class DockApp:
     def __init__(self, dock_layout):
-        # should uncomment these 2 lines after debugging!.
-        # if not pyuac.isUserAdmin():
-        #     elevate.elevate(show_console = False)
-        #     return
+        if not pyuac.isUserAdmin():
+            elevate.elevate(show_console = False)
+            return
 
         self.dock_layout = dock_layout
         self.loadAppsFromConfig()
