@@ -2,7 +2,9 @@ import sys
 import psutil
 import time
 from PyQt5.QtWidgets import QApplication, QLabel, QHBoxLayout, QWidget, QToolTip, QPushButton
-from PyQt5.QtCore import Qt, QTimer, QEvent, QPoint, QPropertyAnimation, QRect
+from PyQt5.QtCore import Qt, QTimer, QEvent, QPoint
+from PyQt5.QtSvg import QSvgWidget
+from PyQt5.QtGui import QFont
 import pynvml
 import subprocess
 import configparser
@@ -104,6 +106,8 @@ class CustomTaskbar(QWidget):
         taskbar_height = self.taskbar_height
         self.setGeometry(0, QApplication.desktop().screenGeometry().height() - taskbar_height, screen_width, taskbar_height)
         self.setFixedHeight(taskbar_height)
+        os.system('cls')
+        print("---------------YOU CAN NOW CLOSE THIS TERMINAL!!---------------")
 
         if self.taskbar_height_warning:
             self.taskbar_warning()
@@ -147,12 +151,9 @@ class CustomTaskbar(QWidget):
 
         trash_layout = QHBoxLayout()
 
-
-
         sys_info_layout = QHBoxLayout()
         self.sys_info_label = QLabel("Loading...")
         sys_info_layout.addWidget(self.sys_info_label)
-
 
         self.tooltip_timer = QTimer(self)
         self.tooltip_timer.timeout.connect(self.updateTooltip)
@@ -172,12 +173,18 @@ class CustomTaskbar(QWidget):
         time_layout.addWidget(self.time_label)
 
         battery_layout = QHBoxLayout()
-        self.battery_label = QLabel("")
-        battery_layout.addWidget(self.battery_label)
+        self.battery_widget = QWidget()
+        self.battery_icon = QSvgWidget()
+        self.battery_icon.setFixedSize(20, 20)
+        battery_layout.addWidget(self.battery_icon)
+
 
         wifi_layout = QHBoxLayout()
-        self.wifi_label = QLabel("")
-        wifi_layout.addWidget(self.wifi_label)
+        self.wifi_widget = QWidget()
+        wifi_layout.addWidget(self.wifi_widget)
+        self.wifi_icon = QSvgWidget()
+        self.wifi_icon.setFixedSize(20, 20)
+        wifi_layout.addWidget(self.wifi_icon)
 
         if self.trash_layout == 0:
             self.layout3(main_layout, sys_info_layout, dock_layout, time_layout, wifi_layout, battery_layout)
@@ -191,17 +198,18 @@ class CustomTaskbar(QWidget):
         timer.timeout.connect(self.updateSystemInfo)
         timer.start(1000)
 
+
         self.updateTime()
         time_timer = QTimer(self)
         time_timer.timeout.connect(self.updateTime)
         time_timer.start(1000)
 
         self.updateWifiLabel()
-        update_wifi = QTimer(self)
-        update_wifi.timeout.connect(self.updateWifiLabel)
-        self.wifi_label.enterEvent = self.show_tooltip_above_wifi
-        self.wifi_label.leaveEvent = self.hide_tooltip
-        update_wifi.start(1000)
+        wifi_timer = QTimer(self)
+        wifi_timer.timeout.connect(self.updateWifiLabel)
+        self.wifi_icon.enterEvent = self.show_tooltip_above_wifi
+        self.wifi_icon.leaveEvent = self.hide_tooltip
+        wifi_timer.start(1000)
 
         self.updateBattery()
         update_battery = QTimer(self)
@@ -232,7 +240,7 @@ class CustomTaskbar(QWidget):
                     print(f"Error deleting {file}: {e}. Skipping.")
 
     def trash_button(self, layout):
-        self.button = QPushButton("")
+        self.button = QPushButton()
         self.button.setStyleSheet(f"""
             QPushButton {{
                 background-color: {self.background_color};
@@ -249,16 +257,39 @@ class CustomTaskbar(QWidget):
             }}
         """)
 
-        self.button.setToolTip("This button deletes all the temporary files which are stored in your system!.")
+        self.button.setToolTip("This button deletes all the temporary files which are stored in your system!")
         self.button.clicked.connect(self.delete_temp_files)
+
+        icon_layout = QHBoxLayout(self.button)
+        icon_layout.setContentsMargins(5, 1, 5, 5)
+
+        svg_icon = QSvgWidget()
+        svg_icon.load("svgs/trash.svg")
+        svg_icon.setFixedSize(20, 20)
+        icon_layout.addWidget(svg_icon)
+
         layout.addWidget(self.button)
+
         self.button.enterEvent = self.show_tooltip_above_trash
         self.button.leaveEvent = self.hide_tooltip
 
 
+    def updateWifiLabel(self):
+        is_connected = ConnectedToWifi.is_connectToInternet()
+
+        if is_connected:
+            self.wifi_icon.load('svgs/wifi_on.svg')
+            self.wifi_icon.setToolTip("Connected to Wi-Fi")
+        else:
+            self.wifi_icon.load('svgs/wifi_off.svg')
+            self.wifi_icon.setToolTip("No Wi-Fi connection")
+
+            
+
+
     def show_tooltip_above_wifi(self, event):
-        tooltip_position = self.wifi_label.mapToGlobal(QPoint(0, -self.wifi_label.height() - 40))
-        QToolTip.showText(tooltip_position, self.wifi_label.toolTip(), self.wifi_label)
+        tooltip_position = self.wifi_icon.mapToGlobal(QPoint(0, -self.wifi_icon.height() - 40))
+        QToolTip.showText(tooltip_position, self.wifi_icon.toolTip(), self.wifi_icon)
         event.accept()
 
     def show_tooltip_above_battery(self, event):
@@ -274,8 +305,6 @@ class CustomTaskbar(QWidget):
     def hide_tooltip(self, event):
         QToolTip.hideText()
         event.accept()
-
-
 
     def monitorApp(self, app_name, pid, button):
         while psutil.pid_exists(pid):
@@ -372,38 +401,35 @@ class CustomTaskbar(QWidget):
         if battery is None:
             battery = ''
 
-        battery_icon = ''
+        # battery_icon = ''
 
 
-        batteries = {"Battery-full": "  ","battery-three-quarters": "  ", "battery-half": "  ", "battery-quarter": "  ", "battery-low": "  ", "battery-charging": "  ", "battery-empty": "  "}
+        # batteries = {"Battery-full": "  ","battery-three-quarters": "  ", "battery-half": "  ", "battery-quarter": "  ", "battery-low": "  ", "battery-charging": "  ", "battery-empty": "  "}
 
         if battery != '' and battery_plugged:
-            battery_icon = batteries.get("battery-charging")
+            self.battery_icon.load('svgs.battery-charging.svg')
 
         elif battery != '' and battery == 100:
-            battery_icon = batteries.get("battery-full")
+            self.battery_icon.load('svgs/battery-full.svg')
 
         elif battery != '' and battery >= 60 and battery < 100:
-            battery_icon = batteries.get("battery-three-quarters")
-        
+            self.battery_icon.load('svgs/battery-high.svg')
+
         elif battery != '' and battery < 60 and battery >= 40:
-            battery_icon = batteries.get("battery-half")
+            self.battery_icon.load('svgs/battery-half.svg')
 
         elif battery != '' and battery <= 59 and battery >= 40:
-           battery_icon = batteries.get("battery-quarter")
+           self.battery_icon.load('svgs/battery-half.svg')
 
         elif battery != '' and battery <= 39 and battery >= 10:
-            battery_icon = batteries.get("battery-low")
+            self.battery_icon.load('svgs/battery-medium.svg')
 
         elif battery != '' and battery < 10:
-            battery_icon = batteries.get("battery-empty")
+            self.battery_icon.load('svgs/battery-low.svg')
 
-        if battery == '':
-            self.battery_label.setText("")
-            self.battery_label.setToolTip("")
-        else:
-            self.battery_label.setText(f"{battery_icon} {battery}%")
-            self.battery_label.setToolTip(f"Battery Level: {battery}%")
+        # if battery >= 0:
+        #     self.battery_label.setToolTip(f"Battery Level: {battery}%")
+
 
     def updateTime(self):
         today = date.today()
@@ -411,19 +437,6 @@ class CustomTaskbar(QWidget):
 
         current_time = time.strftime("%H:%M")
         self.time_label.setText(f"{current_time} | {today}")
-
-    def updateWifiLabel(self):
-        is_connected = ConnectedToWifi.is_connectToInternet()
-
-        if is_connected:
-            self.wifi_icon = "   "
-            self.wifi_label.setText(f"{self.wifi_icon}")
-            self.wifi_label.setToolTip("Connected To Wifi..!")
-        else:
-            self.wifi_icon = " "
-            self.wifi_label.setText(f"{self.wifi_icon}")
-            self.wifi_label.setToolTip("No Internet Connection..!")
-
 
     def updateTooltip(self):
         self.updateSystemInfo()

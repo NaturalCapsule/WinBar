@@ -5,3 +5,4 @@ pynvml
 pyuac
 elevate
 psutil
+requests
