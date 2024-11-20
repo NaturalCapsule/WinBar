@@ -13,9 +13,10 @@ import glob
 import shutil
 import tkinter.messagebox as message
 from docks import DockApp
+from wifi import ConnectedToWifi
+from datetime import date
 
 username = os.getlogin()
-
 
 class CustomTaskbar(QWidget):
     def __init__(self):
@@ -68,27 +69,30 @@ class CustomTaskbar(QWidget):
             self.messagebox()
             sys.exit()
 
-    def layout1(self, main_layout, sys_info_layout, trash_layout, dock_layout, time_layout):
+    def layout1(self, main_layout, sys_info_layout, trash_layout, dock_layout, time_layout, wifi_layout):
         main_layout.addLayout(sys_info_layout)
         main_layout.addLayout(trash_layout)
         main_layout.addStretch()
         main_layout.addLayout(dock_layout)
         main_layout.addStretch()
+        main_layout.addLayout(wifi_layout)
         main_layout.addLayout(time_layout)
 
-    def layout2(self, main_layout, sys_info_layout, trash_layout, dock_layout, time_layout):
+    def layout2(self, main_layout, sys_info_layout, trash_layout, dock_layout, time_layout, wifi_layout):
         main_layout.addLayout(sys_info_layout)
         main_layout.addStretch()
         main_layout.addLayout(dock_layout)
         main_layout.addStretch()
         main_layout.addLayout(trash_layout)
+        main_layout.addLayout(wifi_layout)
         main_layout.addLayout(time_layout)
 
-    def layout3(self, main_layout, sys_info_layout, dock_layout, time_layout):
+    def layout3(self, main_layout, sys_info_layout, dock_layout, time_layout, wifi_layout):
         main_layout.addLayout(sys_info_layout)
         main_layout.addStretch()
         main_layout.addLayout(dock_layout)
         main_layout.addStretch()
+        main_layout.addLayout(wifi_layout)
         main_layout.addLayout(time_layout)
 
     def initUI(self):
@@ -140,6 +144,8 @@ class CustomTaskbar(QWidget):
 
         trash_layout = QHBoxLayout()
 
+
+
         sys_info_layout = QHBoxLayout()
         self.sys_info_label = QLabel("Loading...")
         sys_info_layout.addWidget(self.sys_info_label)
@@ -162,12 +168,16 @@ class CustomTaskbar(QWidget):
         self.time_label = QLabel("")
         time_layout.addWidget(self.time_label)
 
+        wifi_layout = QHBoxLayout()
+        self.wifi_label = QLabel("")
+        wifi_layout.addWidget(self.wifi_label)
+
         if self.trash_layout == 0:
-            self.layout3(main_layout, sys_info_layout, dock_layout, time_layout)
+            self.layout3(main_layout, sys_info_layout, dock_layout, time_layout, wifi_layout)
         elif self.trash_layout == 2:
-            self.layout2(main_layout, sys_info_layout, trash_layout, dock_layout, time_layout)
+            self.layout2(main_layout, sys_info_layout, trash_layout, dock_layout, time_layout, wifi_layout)
         else:
-            self.layout1(main_layout, sys_info_layout, trash_layout, dock_layout, time_layout)
+            self.layout1(main_layout, sys_info_layout, trash_layout, dock_layout, time_layout, wifi_layout)
 
         self.updateSystemInfo()
         timer = QTimer(self)
@@ -179,11 +189,18 @@ class CustomTaskbar(QWidget):
         time_timer.timeout.connect(self.updateTime)
         time_timer.start(1000)
 
+        self.updateWifiLabel()
+        update_wifi = QTimer(self)
+        update_wifi.timeout.connect(self.updateWifiLabel)
+        self.wifi_label.enterEvent = self.show_tooltip_above_wifi
+        self.wifi_label.leaveEvent = self.hide_tooltip
+        update_wifi.start(1000)
+
         self.sys_info_label.installEventFilter(self)
 
 
     def delete_temp_files(self):
-        temp_paths = [r"C:\Windows\Temp\*", fr"C:\Users\{username}\AppData\Local\Temp\*"]
+        temp_paths = [r"C:\Windows\Temp\*", fr"C:\Users\{username}\AppData\Local\Temp\*", "C:\Windows\Prefetch\*"]
 
         for temp_path in temp_paths:
             files = glob.glob(temp_path)
@@ -201,7 +218,7 @@ class CustomTaskbar(QWidget):
                     print(f"Error deleting {file}: {e}. Skipping.")
 
     def trash_button(self, layout):
-        self.button = QPushButton(f"")
+        self.button = QPushButton("")
         self.button.setStyleSheet(f"""
             QPushButton {{
                 background-color: {self.background_color};
@@ -222,10 +239,16 @@ class CustomTaskbar(QWidget):
         self.button.setToolTip("This button deletes all the temporary files which are stored in your system!.")
         self.button.clicked.connect(self.delete_temp_files)
         layout.addWidget(self.button)
-        self.button.enterEvent = self.show_tooltip_above
+        self.button.enterEvent = self.show_tooltip_above_trash
         self.button.leaveEvent = self.hide_tooltip
 
-    def show_tooltip_above(self, event):
+
+    def show_tooltip_above_wifi(self, event):
+        tooltip_position = self.wifi_label.mapToGlobal(QPoint(0, -self.wifi_label.height() - 40))
+        QToolTip.showText(tooltip_position, self.wifi_label.toolTip(), self.wifi_label)
+        event.accept()
+
+    def show_tooltip_above_trash(self, event):
         tooltip_position = self.button.mapToGlobal(QPoint(0, -self.button.height() - 40))
         QToolTip.showText(tooltip_position, self.button.toolTip(), self.button)
         event.accept()
@@ -234,20 +257,12 @@ class CustomTaskbar(QWidget):
         QToolTip.hideText()
         event.accept()
 
-    def eventfilter(self, source, event):
-        if source == self.button and event.type() == QEvent.ToolTip:
-            tooltip_position = source.mapToGlobal(QPoint(0, -source.height() - 20))
-            QToolTip.showText(tooltip_position, source.toolTip(), source)
-            return True
-        return super().eventfilter(source, event)
-
     def monitorApp(self, app_name, pid, button):
         while psutil.pid_exists(pid):
             time.sleep(5)
 
         button.setProperty('app_pid', None)
         button.setStyleSheet("border: none;")
-
 
     def launchApp(self, app_name, app_path, button):
 
@@ -357,9 +372,25 @@ class CustomTaskbar(QWidget):
 
         elif battery != '' and battery < 10:
             battery_icon = batteries.get("battery-empty")
+        
+        
+        today = date.today()
+        today = today.strftime("%d %B %Y")
 
-        current_time = time.strftime("%H:%M:%S")
-        self.time_label.setText(f"{battery_icon} {battery}|{current_time}")
+        current_time = time.strftime("%H:%M")
+        self.time_label.setText(f"{battery_icon} {battery}| {current_time} | {today}")
+
+    def updateWifiLabel(self):
+        is_connected = ConnectedToWifi.is_connectToInternet()
+
+        if is_connected:
+            self.wifi_icon = "   "
+            self.wifi_label.setText(f"{self.wifi_icon}")
+            self.wifi_label.setToolTip("Connected To Wifi..!")
+        else:
+            self.wifi_icon = " "
+            self.wifi_label.setText(f"{self.wifi_icon}")
+            self.wifi_label.setToolTip("No Internet Connection..!")
 
 
     def updateTooltip(self):
@@ -376,10 +407,6 @@ class CustomTaskbar(QWidget):
                 self.tooltip_timer.stop()
                 QToolTip.hideText()
         return super().eventFilter(obj, event)
-
-config = configparser.ConfigParser()
-config.read('config.ini')
-
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)

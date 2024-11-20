@@ -3,7 +3,7 @@
 to use this app copy the command below, open your terminal and paste it:
 `pip install -r requirements.txt`
 
-in the `config.ini` file you can change these:
+in the `config.ini` file you can add apps change these:
 * colors
 * background-colors
 * padding

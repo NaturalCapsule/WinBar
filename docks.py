@@ -13,10 +13,10 @@ username = os.getlogin()
 
 class DockApp:
     def __init__(self, dock_layout):
-        # Check if the app is running as admin at the start
-        if not pyuac.isUserAdmin():
-            elevate.elevate(show_console = False)  # Relauching the script with admin rights
-            return
+        # should uncomment these 2 lines after debugging!.
+        # if not pyuac.isUserAdmin():
+        #     elevate.elevate(show_console = False)
+        #     return
 
         self.dock_layout = dock_layout
         self.loadAppsFromConfig()
@@ -47,20 +47,18 @@ class DockApp:
             for key, value in config['DockApps'].items():
                 try:
                     app_path, icon_path = value.split(', ')
-                    app_path = app_path.replace(f"{username}", os.getlogin())  # Replace {username} with actual username
+                    app_path = app_path.replace(f"{username}", os.getlogin())
                     self.addDockIcon(app_path, icon_path, self.dock_layout)
                 except ValueError:
                     print(f"Invalid entry for {key} in config.ini. Expected format: app_path, icon_path")
 
     def launchApp(self, app_name, app_path, button):
         try:
-            # Launch the app with subprocess
             process = subprocess.Popen(app_path, shell=True, creationflags=subprocess.CREATE_NO_WINDOW)
             self.open_apps[app_name] = psutil.Process(process.pid)
 
             button.setProperty('app_pid', process.pid)
 
-            # Apply active styles to indicate the app is running
             button.setStyleSheet(f"""
                 border: {self.active_border}px solid {self.active_border_color};
                 background-color: {self.active_background_color};
@@ -76,6 +74,5 @@ class DockApp:
         while psutil.pid_exists(pid):
             time.sleep(5)
 
-        # Reset the button style when the app is no longer running
         button.setProperty('app_pid', None)
         button.setStyleSheet("border: none;")
