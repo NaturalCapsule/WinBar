@@ -23,8 +23,7 @@ username = os.getlogin()
 class CustomTaskbar(QWidget):
     def __init__(self):
         super().__init__()
-        pynvml.nvmlInit()
-        self.handle = pynvml.nvmlDeviceGetHandleByIndex(0)
+
         self.loadConfig()
         self.initUI()
         self.open_apps = {}
@@ -173,7 +172,7 @@ class CustomTaskbar(QWidget):
         time_layout.addWidget(self.time_label)
 
         battery_layout = QHBoxLayout()
-        self.battery_widget = QWidget()
+        # self.battery_widget = QWidget()
         self.battery_icon = QSvgWidget()
         self.battery_icon.setFixedSize(20, 20)
         battery_layout.addWidget(self.battery_icon)
@@ -214,8 +213,8 @@ class CustomTaskbar(QWidget):
         self.updateBattery()
         update_battery = QTimer(self)
         update_battery.timeout.connect(self.updateBattery)
-        self.battery_label.enterEvent = self.show_tooltip_above_battery
-        self.battery_label.leaveEvent = self.hide_tooltip
+        self.battery_icon.enterEvent = self.show_tooltip_above_battery
+        self.battery_icon.leaveEvent = self.hide_tooltip
         update_battery.start(1000)
 
         self.sys_info_label.installEventFilter(self)
@@ -277,14 +276,14 @@ class CustomTaskbar(QWidget):
     def updateWifiLabel(self):
         is_connected = ConnectedToWifi.is_connectToInternet()
 
+        show_ssid = ConnectedToWifi.get_connected_wifi_ssid()
+
         if is_connected:
             self.wifi_icon.load('svgs/wifi_on.svg')
-            self.wifi_icon.setToolTip("Connected to Wi-Fi")
+            self.wifi_icon.setToolTip(f"Connected to {show_ssid}")
         else:
             self.wifi_icon.load('svgs/wifi_off.svg')
             self.wifi_icon.setToolTip("No Wi-Fi connection")
-
-            
 
 
     def show_tooltip_above_wifi(self, event):
@@ -293,8 +292,8 @@ class CustomTaskbar(QWidget):
         event.accept()
 
     def show_tooltip_above_battery(self, event):
-        tooltip_position = self.battery_label.mapToGlobal(QPoint(0, -self.battery_label.height() - 40))
-        QToolTip.showText(tooltip_position, self.battery_label.toolTip(), self.battery_label)
+        tooltip_position = self.battery_icon.mapToGlobal(QPoint(0, -self.battery_icon.height() - 40))
+        QToolTip.showText(tooltip_position, self.battery_icon.toolTip(), self.battery_icon)
         event.accept()
 
     def show_tooltip_above_trash(self, event):
@@ -337,34 +336,55 @@ class CustomTaskbar(QWidget):
         return f"{cpu:.2f}°C"
 
     def get_used_vram(self):
-        vram_used = pynvml.nvmlDeviceGetMemoryInfo(self.handle).used
-        vram_used_gb = vram_used / (1024 ** 3)
-        return vram_used_gb
+        self.handle = None
+        self.has_nvidia_gpu = False
+        
+        try:
+            pynvml.nvmlInit()
+            self.num_gpus = pynvml.nvmlDeviceGetCount()
+            if self.num_gpus > 0:
+                self.has_nvidia_gpu = True
+                self.handle = pynvml.nvmlDeviceGetHandleByIndex(0)
+                vram_used = pynvml.nvmlDeviceGetMemoryInfo(self.handle).used
+            vram_used_gb = vram_used / (1024 ** 3)
+            return vram_used_gb
+        except pynvml.NVMLError as e:
+            print(f"Error initializing pynvml: {e}")
+            return 0
 
     def get_nvidia_gpu_usage(self):
         try:
             result = subprocess.run(['nvidia-smi', '--query-gpu=utilization.gpu', '--format=csv,noheader,nounits'],
                                     stdout=subprocess.PIPE, text=True)
-            temperature = result.stdout.strip()
-            return f"{temperature}"
+            usage = result.stdout.strip()
+            return f"{usage}"
         except FileNotFoundError:
-            return "nvidia-smi not found. Make sure NVIDIA drivers are installed."
+            return ''
 
 
     def get_nvidia_gpu_temperature(self):
+        self.gpu_test = ""
         try:
             result = subprocess.run(['nvidia-smi', '--query-gpu=temperature.gpu', '--format=csv,noheader,nounits'],
                                     stdout=subprocess.PIPE, text=True)
             temperature = result.stdout.strip()
             return f"{temperature}"
         except FileNotFoundError:
-            return "nvidia-smi not found. Make sure NVIDIA drivers are installed."
+            self.gpu_test = ""
+            return f"{self.gpu_test}"
 
 
     def get_tot_vram(self):
-        vram_total = pynvml.nvmlDeviceGetMemoryInfo(self.handle).total
-        vram_total_gb = vram_total / (1024 ** 3)
-        return vram_total_gb
+        if not self.has_nvidia_gpu:
+            return "No NVIDIA GPU detected"
+        
+        try:
+            vram_total = pynvml.nvmlDeviceGetMemoryInfo(self.handle).total
+            vram_total_gb = vram_total / (1024 ** 3)
+            return vram_total_gb
+        except pynvml.NVMLError as e:
+            print(f"Error getting total VRAM: {e}")
+            return 0
 
     def updateSystemInfo(self):
         cpu_usage = psutil.cpu_percent()
@@ -381,9 +401,13 @@ class CustomTaskbar(QWidget):
         ram_total_gb = ram_info.total / (1024 ** 3)
         self.cpu_tooltip = f"CPU Frequency: {cpu_freq:.2f} MHz\nCPU Usage: {cpu_usage}%\nCPU Temp: {cpu_temp}"
         self.ram_tooltip = f"RAM Used: {ram_used_gb:.2f} GB / {ram_total_gb:.2f} GB\nRAM Usage: {ram_usage}%"
+        gpu_text = "| GPU: "
+        if self.has_nvidia_gpu == False:
+            self.gpu_tooltip = ""
+            gpu_usage = ""
+            gpu_text = ""
         self.gpu_tooltip = f"GPU Temperature: {gpu_temp}°C\nGPU Usage: {gpu_usage}%\nGPU VRAM Used: {used_vram:.2f} GB / {tot_vram} GB"
-
-        self.sys_info_label.setText(f"CPU: {cpu_usage}% | RAM: {ram_usage}% | GPU: {gpu_usage}%")
+        self.sys_info_label.setText(f"CPU: {cpu_usage}% | RAM: {ram_usage}% {gpu_text}{gpu_usage}%")
 
 
     def batteryLevel(self):
@@ -395,40 +419,35 @@ class CustomTaskbar(QWidget):
             battery_plugged = psutil.sensors_battery()[2]
 
         except TypeError:
-            battery = ''
+            battery = -1
             battery_plugged = ''
 
         if battery is None:
-            battery = ''
+            battery = -1
 
-        # battery_icon = ''
+        if battery != -1 and battery_plugged:
+            self.battery_icon.load('svgs/battery-charging.svg')
 
-
-        # batteries = {"Battery-full": "  ","battery-three-quarters": "  ", "battery-half": "  ", "battery-quarter": "  ", "battery-low": "  ", "battery-charging": "  ", "battery-empty": "  "}
-
-        if battery != '' and battery_plugged:
-            self.battery_icon.load('svgs.battery-charging.svg')
-
-        elif battery != '' and battery == 100:
+        elif battery != -1 and battery == 100:
             self.battery_icon.load('svgs/battery-full.svg')
 
-        elif battery != '' and battery >= 60 and battery < 100:
+        elif battery != -1 and battery >= 60 and battery < 100:
             self.battery_icon.load('svgs/battery-high.svg')
 
-        elif battery != '' and battery < 60 and battery >= 40:
+        elif battery != -1 and battery < 60 and battery >= 40:
             self.battery_icon.load('svgs/battery-half.svg')
 
-        elif battery != '' and battery <= 59 and battery >= 40:
+        elif battery != -1 and battery <= 59 and battery >= 40:
            self.battery_icon.load('svgs/battery-half.svg')
 
-        elif battery != '' and battery <= 39 and battery >= 10:
+        elif battery != -1 and battery <= 39 and battery >= 10:
             self.battery_icon.load('svgs/battery-medium.svg')
 
-        elif battery != '' and battery < 10:
+        elif battery != -1 and battery < 10:
             self.battery_icon.load('svgs/battery-low.svg')
 
-        # if battery >= 0:
-        #     self.battery_label.setToolTip(f"Battery Level: {battery}%")
+        if battery >= 0:
+            self.battery_icon.setToolTip(f"Battery Level: {battery}%")
 
 
     def updateTime(self):
