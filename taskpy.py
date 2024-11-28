@@ -4,21 +4,17 @@ import time
 from PyQt5.QtWidgets import QApplication, QLabel, QHBoxLayout, QWidget, QToolTip, QPushButton
 from PyQt5.QtCore import Qt, QTimer, QEvent, QPoint
 from PyQt5.QtSvg import QSvgWidget
-from PyQt5.QtGui import QFont
-import pynvml
 import subprocess
 import configparser
-import WinTmp
 import os
 import threading
-import glob
-import shutil
-import tkinter.messagebox as message
 from docks import DockApp
 from wifi import ConnectedToWifi
 from datetime import date
+from nvidia import Nvidia 
+from utils import Utils
+from message import Message
 
-username = os.getlogin()
 
 class CustomTaskbar(QWidget):
     def __init__(self):
@@ -59,15 +55,13 @@ class CustomTaskbar(QWidget):
         self.button_border = config.get('button', 'buttonBorder')
         self.padding_button = config.get('button', 'paddingButton')
 
-        self.trash_layout: int = config.getint('trash', 'trashLayout')
+        self.trash_layout: int = config.getint('Appearance', 'trashLayout')
 
-    def messagebox(self):
-        message.showwarning("TaskBar Height is out of bounds!", "This warning message indicates that you set the taskbar height way too high, please lower it.\n\nBut hey who gives a shit this is an open source project, if you still wannna change it,\nGo to the config.ini file and set the taskbar_height_warning to 'False'!... :)")
-
+        self.show_battery = config.getboolean('Appearance', 'showBattery')
 
     def taskbar_warning(self):
         if self.taskbar_height > 80:
-            self.messagebox()
+            Message.messagebox(self)
             sys.exit()
 
     def layout1(self, main_layout, sys_info_layout, trash_layout, dock_layout, time_layout, wifi_layout, battery_layout):
@@ -77,7 +71,8 @@ class CustomTaskbar(QWidget):
         main_layout.addLayout(dock_layout)
         main_layout.addStretch()
         main_layout.addLayout(wifi_layout)
-        main_layout.addLayout(battery_layout)
+        if self.show_battery:
+            main_layout.addLayout(battery_layout)
         main_layout.addLayout(time_layout)
 
     def layout2(self, main_layout, sys_info_layout, trash_layout, dock_layout, time_layout, wifi_layout, battery_layout):
@@ -87,7 +82,8 @@ class CustomTaskbar(QWidget):
         main_layout.addStretch()
         main_layout.addLayout(trash_layout)
         main_layout.addLayout(wifi_layout)
-        main_layout.addLayout(battery_layout)
+        if self.show_battery:
+            main_layout.addLayout(battery_layout)
         main_layout.addLayout(time_layout)
 
     def layout3(self, main_layout, sys_info_layout, dock_layout, time_layout, wifi_layout, battery_layout):
@@ -96,7 +92,8 @@ class CustomTaskbar(QWidget):
         main_layout.addLayout(dock_layout)
         main_layout.addStretch()
         main_layout.addLayout(wifi_layout)
-        main_layout.addLayout(battery_layout)
+        if self.show_battery:
+            main_layout.addLayout(battery_layout)
         main_layout.addLayout(time_layout)
 
     def initUI(self):
@@ -172,11 +169,9 @@ class CustomTaskbar(QWidget):
         time_layout.addWidget(self.time_label)
 
         battery_layout = QHBoxLayout()
-        # self.battery_widget = QWidget()
         self.battery_icon = QSvgWidget()
         self.battery_icon.setFixedSize(20, 20)
         battery_layout.addWidget(self.battery_icon)
-
 
         wifi_layout = QHBoxLayout()
         self.wifi_widget = QWidget()
@@ -220,23 +215,6 @@ class CustomTaskbar(QWidget):
         self.sys_info_label.installEventFilter(self)
 
 
-    def delete_temp_files(self):
-        temp_paths = [r"C:\Windows\Temp\*", fr"C:\Users\{username}\AppData\Local\Temp\*", "C:\Windows\Prefetch\*"]
-
-        for temp_path in temp_paths:
-            files = glob.glob(temp_path)
-
-            for file in files:
-                try:
-                    if os.path.isdir(file):
-                        shutil.rmtree(file)
-                        print(f"Deleted directory: {file}")
-                    else:
-                        os.remove(file)
-                except PermissionError as e:
-                    print(f"Permission error deleting {file}: {e}. Skipping.")
-                except OSError as e:
-                    print(f"Error deleting {file}: {e}. Skipping.")
 
     def trash_button(self, layout):
         self.button = QPushButton()
@@ -256,8 +234,9 @@ class CustomTaskbar(QWidget):
             }}
         """)
 
+
         self.button.setToolTip("This button deletes all the temporary files which are stored in your system!")
-        self.button.clicked.connect(self.delete_temp_files)
+        self.button.clicked.connect(Utils.delete_temp_files)
 
         icon_layout = QHBoxLayout(self.button)
         icon_layout.setContentsMargins(5, 1, 5, 5)
@@ -328,77 +307,23 @@ class CustomTaskbar(QWidget):
 
         threading.Thread(target=self.monitorApp, args=(app_name, process.pid, button), daemon=True).start()
 
-    def get_cpu_temperature(self):
-        cpu = WinTmp.CPU_Temp()
-        if cpu == 0.0 or cpu is None:
-            return "Please make sure you have ran this program as an Administrator"
-
-        return f"{cpu:.2f}°C"
-
-    def get_used_vram(self):
-        self.handle = None
-        self.has_nvidia_gpu = False
-        
-        try:
-            pynvml.nvmlInit()
-            self.num_gpus = pynvml.nvmlDeviceGetCount()
-            if self.num_gpus > 0:
-                self.has_nvidia_gpu = True
-                self.handle = pynvml.nvmlDeviceGetHandleByIndex(0)
-                vram_used = pynvml.nvmlDeviceGetMemoryInfo(self.handle).used
-            vram_used_gb = vram_used / (1024 ** 3)
-            return vram_used_gb
-        except pynvml.NVMLError as e:
-            print(f"Error initializing pynvml: {e}")
-            return 0
-
-    def get_nvidia_gpu_usage(self):
-        try:
-            result = subprocess.run(['nvidia-smi', '--query-gpu=utilization.gpu', '--format=csv,noheader,nounits'],
-                                    stdout=subprocess.PIPE, text=True)
-            usage = result.stdout.strip()
-            return f"{usage}"
-        except FileNotFoundError:
-            return ''
-
-
-    def get_nvidia_gpu_temperature(self):
-        self.gpu_test = ""
-        try:
-            result = subprocess.run(['nvidia-smi', '--query-gpu=temperature.gpu', '--format=csv,noheader,nounits'],
-                                    stdout=subprocess.PIPE, text=True)
-            temperature = result.stdout.strip()
-            return f"{temperature}"
-        except FileNotFoundError:
-            self.gpu_test = ""
-            return f"{self.gpu_test}"
-
-
-    def get_tot_vram(self):
-        if not self.has_nvidia_gpu:
-            return "No NVIDIA GPU detected"
-        
-        try:
-            vram_total = pynvml.nvmlDeviceGetMemoryInfo(self.handle).total
-            vram_total_gb = vram_total / (1024 ** 3)
-            return vram_total_gb
-        except pynvml.NVMLError as e:
-            print(f"Error getting total VRAM: {e}")
-            return 0
-
     def updateSystemInfo(self):
-        cpu_usage = psutil.cpu_percent()
-        cpu_temp = self.get_cpu_temperature()
-        ram_info = psutil.virtual_memory()
-        ram_usage = ram_info.percent
-        gpu_usage = self.get_nvidia_gpu_usage()
-        gpu_temp = self.get_nvidia_gpu_temperature()
-        used_vram = self.get_used_vram()
-        tot_vram = self.get_tot_vram()
+        cpu_usage = Utils.get_cpu_usage()
+        cpu_temp = Utils.get_cpu_temperature()
+        cpu_freq = Utils.get_cpu_freq()
 
-        cpu_freq = psutil.cpu_freq().current
-        ram_used_gb = ram_info.used / (1024 ** 3)
-        ram_total_gb = ram_info.total / (1024 ** 3)
+
+        gpu_usage = Nvidia.get_nvidia_gpu_usage(self)
+        gpu_temp = Nvidia.get_nvidia_gpu_temperature(self)
+        used_vram = Nvidia.get_used_vram(self)
+        tot_vram = Nvidia.get_tot_vram(self)
+
+
+        ram_usage = Utils.ram_usage()
+        ram_used_gb = Utils.get_used_ram_gb()
+        ram_total_gb = Utils.get_total_ram_gb()
+
+
         self.cpu_tooltip = f"CPU Frequency: {cpu_freq:.2f} MHz\nCPU Usage: {cpu_usage}%\nCPU Temp: {cpu_temp}"
         self.ram_tooltip = f"RAM Used: {ram_used_gb:.2f} GB / {ram_total_gb:.2f} GB\nRAM Usage: {ram_usage}%"
         gpu_text = "| GPU: "
@@ -408,10 +333,6 @@ class CustomTaskbar(QWidget):
             gpu_text = ""
         self.gpu_tooltip = f"GPU Temperature: {gpu_temp}°C\nGPU Usage: {gpu_usage}%\nGPU VRAM Used: {used_vram:.2f} GB / {tot_vram} GB"
         self.sys_info_label.setText(f"CPU: {cpu_usage}% | RAM: {ram_usage}% {gpu_text}{gpu_usage}%")
-
-
-    def batteryLevel(self):
-        pass
 
     def updateBattery(self):
         try:
@@ -446,8 +367,7 @@ class CustomTaskbar(QWidget):
         elif battery != -1 and battery < 10:
             self.battery_icon.load('svgs/battery-low.svg')
 
-        if battery >= 0:
-            self.battery_icon.setToolTip(f"Battery Level: {battery}%")
+        self.battery_icon.setToolTip(f"Battery Level: {battery}%")
 
 
     def updateTime(self):
