@@ -14,15 +14,19 @@ from datetime import date
 from nvidia import Nvidia 
 from utils import Utils
 from message import Message
-
+from exit import Exit
+from threading import Thread
 
 class CustomTaskbar(QWidget):
     def __init__(self):
         super().__init__()
-
+        # self.test_function()
         self.loadConfig()
         self.initUI()
         self.open_apps = {}
+
+        self.monitor_exit_thread = Thread(target=self.exit_function, daemon=True)
+        self.monitor_exit_thread.start()
 
     def loadConfig(self):
         config = configparser.ConfigParser()
@@ -95,6 +99,14 @@ class CustomTaskbar(QWidget):
         if self.show_battery:
             main_layout.addLayout(battery_layout)
         main_layout.addLayout(time_layout)
+
+    def exit_function(self):
+        while True:
+            if Exit.exit():
+                print("Exiting application...")
+                QApplication.quit()
+                break
+            time.sleep(0.1) 
 
     def initUI(self):
         self.setWindowFlags(Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint | Qt.ToolTip)

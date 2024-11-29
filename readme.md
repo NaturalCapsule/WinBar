@@ -1,9 +1,11 @@
+## STILL IN PROGRESS....
+
 # this is just a basic taskbar, maybe in the future i will make it more advance!.
 
 to use this app copy the command below, open your terminal and paste it:
 `pip install -r requirements.txt`
 
-in the `config.ini` file you can add apps or change these:
+in the `config.ini` file you can add apps, change these, etc...:
 * colors
 * background-colors
 * padding
