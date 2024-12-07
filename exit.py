@@ -3,7 +3,7 @@ import keyboard
 import configparser
 
 config = configparser.ConfigParser()
-config.read('config.ini')
+config.read('config/config.ini')
 
 exit_buttons = config.get('Appearance', 'exitShortcut').split(', ')
 

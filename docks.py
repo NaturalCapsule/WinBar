@@ -5,27 +5,28 @@ from PyQt5.QtGui import QIcon
 from configparser import ConfigParser
 import psutil
 import subprocess
-import time
-import threading
 import pyuac
 
 username = os.getlogin()
 
 class DockApp:
     def __init__(self, dock_layout):
-        if not pyuac.isUserAdmin():
-            elevate.elevate(show_console = False)
-            return
-
+        # if not pyuac.isUserAdmin():
+        #     elevate.elevate(show_console = False)
+        #     return
         self.dock_layout = dock_layout
         self.loadAppsFromConfig()
         self.open_apps = {}
 
     def addDockIcon(self, app_path, icon_path, layout):
-        button = QPushButton()
-        button.setIcon(QIcon(icon_path))
-        button.setStyleSheet("border: 10px;")
 
+        button = QPushButton()
+        button.setObjectName('dock')
+        button.setIcon(QIcon(icon_path))
+
+        with open('config/style.css', 'r') as f:
+            self.css = f.read()
+        button.setStyleSheet(self.css)
         app_name = os.path.basename(app_path).replace(".exe", "")
 
         button.setProperty('app_name', app_name)
@@ -36,11 +37,7 @@ class DockApp:
 
     def loadAppsFromConfig(self):
         config = ConfigParser()
-        config.read('config.ini')
-        self.active_border_color = config.get('active', 'activeBorderColor')
-        self.active_border = config.getint('active', 'activeBorder')
-        self.active_border_radius = config.getint('active', 'activeBorderRadius')
-        self.active_background_color = config.get('active', 'activeBackgroundColor')
+        config.read('config/config.ini')
 
         if 'DockApps' in config:
             for key, value in config['DockApps'].items():
@@ -58,20 +55,8 @@ class DockApp:
 
             button.setProperty('app_pid', process.pid)
 
-            button.setStyleSheet(f"""
-                border: {self.active_border}px solid {self.active_border_color};
-                background-color: {self.active_background_color};
-                border-radius: {self.active_border_radius}px;
-            """)
+            button.setStyleSheet(self.css)
 
-            threading.Thread(target=self.monitorApp, args=(app_name, process.pid, button), daemon=True).start()
+            # threading.Thread(target=self.monitorApp, args=(app_name, process.pid, button), daemon=True).start()
         except Exception as e:
             print(f"Failed to launch {app_name}: {e}")
-
-    # Function to monitor the app process
-    def monitorApp(self, app_name, pid, button):
-        while psutil.pid_exists(pid):
-            time.sleep(5)
-
-        button.setProperty('app_pid', None)
-        button.setStyleSheet("border: none;")

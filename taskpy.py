@@ -2,12 +2,11 @@ import sys
 import psutil
 import time
 from PyQt5.QtWidgets import QApplication, QLabel, QHBoxLayout, QWidget, QToolTip, QPushButton
-from PyQt5.QtCore import Qt, QTimer, QEvent, QPoint
+from PyQt5.QtCore import Qt, QTimer, QEvent, QPoint, QThread, pyqtSignal
 from PyQt5.QtSvg import QSvgWidget
-import subprocess
+from PyQt5.QtGui import QSurfaceFormat
 import configparser
 import os
-import threading
 from docks import DockApp
 from wifi import ConnectedToWifi
 from datetime import date
@@ -16,61 +15,40 @@ from utils import Utils
 from message import Message
 from exit import Exit
 from threading import Thread
+from menu import Menu
 
 class CustomTaskbar(QWidget):
     def __init__(self):
         super().__init__()
-        # self.test_function()
         self.loadConfig()
         self.initUI()
         self.open_apps = {}
-
         self.monitor_exit_thread = Thread(target=self.exit_function, daemon=True)
         self.monitor_exit_thread.start()
 
     def loadConfig(self):
-        config = configparser.ConfigParser()
-        config.read('config.ini')
+        config = configparser.ConfigParser(interpolation = None)
+        config.read('config/config.ini')
 
         self.taskbar_height_warning = config.getboolean('Appearance', 'taskbarHeightWarning')
         self.taskbar_height = config.getint('Appearance', 'taskbarHeight')
-        self.background_color = config.get('Appearance', 'backgroundColor')
-        self.text_color = config.get('Appearance', 'textColor')
-        self.font_size = config.getint('Appearance', 'fontSize')
-        self.border_radius = config.getint('Appearance', 'borderRadius')
         self.transparent = config.getboolean('Appearance', 'transparency')
         if self.transparent == True:
             self.setAttribute(Qt.WA_TranslucentBackground)
 
-        self.tool_background = config.get('Tooltip', 'toolTipBackgroundColor')
-        self.tool_text_color = config.get('Tooltip', 'toolTipTextColor')
-        self.tool_font_size = config.getint('Tooltip', 'toolTipFontSize')
-        self.tool_border_radius = config.getint('Tooltip', 'toolTipBorderRadius')
-        self.tool_border_color = config.get('Tooltip', 'toolTipBorderColor')
-        self.tool_padding = config.getint('Tooltip', 'toolTipPadding')
-        self.tool_border = config.getint('Tooltip', 'toolTipBorder')
-
-        self.button_color = config.get('button', 'buttonColor')
-        self.background_button_color = config.get('button', 'backroundButtonColor')
-        self.hover_button_color = config.get('button', 'hoverButton')
-        self.hover_padding = config.get('button', 'hoverPadding')
-        self.hover_border_radius = config.get('button', 'hoverBorderRadius')
-        self.hover_border = config.get('button', 'hoverBorder')
-        self.button_border = config.get('button', 'buttonBorder')
-        self.padding_button = config.get('button', 'paddingButton')
-
         self.trash_layout: int = config.getint('Appearance', 'trashLayout')
-
         self.show_battery = config.getboolean('Appearance', 'showBattery')
+        self.display_time_layout = config.get('Appearance', 'timeLayout')
 
     def taskbar_warning(self):
         if self.taskbar_height > 80:
             Message.messagebox(self)
             sys.exit()
 
-    def layout1(self, main_layout, sys_info_layout, trash_layout, dock_layout, time_layout, wifi_layout, battery_layout):
+    def layout1(self, main_layout, sys_info_layout, trash_layout, dock_layout, time_layout, wifi_layout, battery_layout, menu_layout):
         main_layout.addLayout(sys_info_layout)
         main_layout.addLayout(trash_layout)
+        main_layout.addLayout(menu_layout)
         main_layout.addStretch()
         main_layout.addLayout(dock_layout)
         main_layout.addStretch()
@@ -79,8 +57,9 @@ class CustomTaskbar(QWidget):
             main_layout.addLayout(battery_layout)
         main_layout.addLayout(time_layout)
 
-    def layout2(self, main_layout, sys_info_layout, trash_layout, dock_layout, time_layout, wifi_layout, battery_layout):
+    def layout2(self, main_layout, sys_info_layout, trash_layout, dock_layout, time_layout, wifi_layout, battery_layout, menu_layout):
         main_layout.addLayout(sys_info_layout)
+        main_layout.addLayout(menu_layout)
         main_layout.addStretch()
         main_layout.addLayout(dock_layout)
         main_layout.addStretch()
@@ -90,8 +69,9 @@ class CustomTaskbar(QWidget):
             main_layout.addLayout(battery_layout)
         main_layout.addLayout(time_layout)
 
-    def layout3(self, main_layout, sys_info_layout, dock_layout, time_layout, wifi_layout, battery_layout):
+    def layout3(self, main_layout, sys_info_layout, dock_layout, time_layout, wifi_layout, battery_layout, menu_layout):
         main_layout.addLayout(sys_info_layout)
+        main_layout.addLayout(menu_layout)
         main_layout.addStretch()
         main_layout.addLayout(dock_layout)
         main_layout.addStretch()
@@ -120,39 +100,11 @@ class CustomTaskbar(QWidget):
         if self.taskbar_height_warning:
             self.taskbar_warning()
 
-        self.setStyleSheet(f"""
-            /* Taskbar styles */
-            QWidget {{
-                background-color: {self.background_color};  /* Taskbar background color */
-                color: {self.text_color};    /* Taskbar text color */
-                font-size: {self.font_size}px; /* Taskbar font size */
-                border-radius: {self.border_radius}px; /* Taskbar border radius */
-            }}
+        self.setObjectName('window')
 
-            QPushButton {{
-                background-color: {self.background_button_color};
-                color:{self.button_color};
-                border: {self.button_border}px;
-                padding: {self.padding_button}px;
-            }}
-
-            QPushButton:hover {{
-                background-color: {self.hover_button_color};
-                border-radius: {self.hover_border_radius}px;
-                border: {self.hover_border}px;
-                padding: {self.hover_padding}px;
-            }}
-
-            /* Tooltip styles */
-            QToolTip {{
-                background-color: {self.tool_background};   /* Tooltip background color */
-                color: {self.tool_text_color};               /* Tooltip text color */
-                border: {self.tool_border}px solid {self.tool_border_color}; /* Tooltip border color */
-                padding: {self.tool_padding}px;              /* Padding around tooltip text */
-                font-size: {self.tool_font_size}px;          /* Tooltip font size */
-                border-radius: {self.tool_border_radius}px;  /* Tooltip border radius */
-            }}
-        """)
+        with open('config/style.css', 'r') as f:
+            self.css = f.read()
+        self.setStyleSheet(self.css)
 
         main_layout = QHBoxLayout()
         self.setLayout(main_layout)
@@ -161,6 +113,7 @@ class CustomTaskbar(QWidget):
 
         sys_info_layout = QHBoxLayout()
         self.sys_info_label = QLabel("Loading...")
+        self.sys_info_label.setObjectName('window')
         sys_info_layout.addWidget(self.sys_info_label)
 
         self.tooltip_timer = QTimer(self)
@@ -168,16 +121,17 @@ class CustomTaskbar(QWidget):
         self.tooltip_timer.setInterval(1000)
 
         dock_layout = QHBoxLayout()
-        dock_layout.addStretch()
 
         docks = DockApp(dock_layout)
 
         self.trash_button(trash_layout)
 
-        dock_layout.addStretch()
+        menu_layout = QHBoxLayout()
+        self.menu_button(menu_layout)
 
         time_layout = QHBoxLayout()
         self.time_label = QLabel("")
+        self.time_label.setObjectName('window')
         time_layout.addWidget(self.time_label)
 
         battery_layout = QHBoxLayout()
@@ -193,16 +147,16 @@ class CustomTaskbar(QWidget):
         wifi_layout.addWidget(self.wifi_icon)
 
         if self.trash_layout == 0:
-            self.layout3(main_layout, sys_info_layout, dock_layout, time_layout, wifi_layout, battery_layout)
+            self.layout3(main_layout, sys_info_layout, dock_layout, time_layout, wifi_layout, battery_layout, menu_layout)
         elif self.trash_layout == 2:
-            self.layout2(main_layout, sys_info_layout, trash_layout, dock_layout, time_layout, wifi_layout, battery_layout)
+            self.layout2(main_layout, sys_info_layout, trash_layout, dock_layout, time_layout, wifi_layout, battery_layout, menu_layout)
         else:
-            self.layout1(main_layout, sys_info_layout, trash_layout, dock_layout, time_layout, wifi_layout, battery_layout)
+            self.layout1(main_layout, sys_info_layout, trash_layout, dock_layout, time_layout, wifi_layout, battery_layout, menu_layout)
 
         self.updateSystemInfo()
         timer = QTimer(self)
         timer.timeout.connect(self.updateSystemInfo)
-        timer.start(1000)
+        # timer.start(1000)
 
 
         self.updateTime()
@@ -217,6 +171,7 @@ class CustomTaskbar(QWidget):
         self.wifi_icon.leaveEvent = self.hide_tooltip
         wifi_timer.start(1000)
 
+
         self.updateBattery()
         update_battery = QTimer(self)
         update_battery.timeout.connect(self.updateBattery)
@@ -227,36 +182,42 @@ class CustomTaskbar(QWidget):
         self.sys_info_label.installEventFilter(self)
 
 
+    def menu_button(self, layout):
+        self.menu = QPushButton("")
+        self.menu.setObjectName('menuButton')
+        self.menu.setStyleSheet(self.css)
+        
+        self.menu_ = Menu(self.menu)
+        
+        self.menu.clicked.connect(self.menu_.open_menu)
+        
+        icon_layout = QHBoxLayout(self.menu)
+        icon_layout.setContentsMargins(5, 0, 5, 0)
+
+        svg_icon = QSvgWidget()
+        svg_icon.load("svgs/menu.svg")
+        svg_icon.setFixedSize(20, 20)
+        icon_layout.addWidget(svg_icon)
+
+        layout.addWidget(self.menu)
+
 
     def trash_button(self, layout):
         self.button = QPushButton()
-        self.button.setStyleSheet(f"""
-            QPushButton {{
-                background-color: {self.background_color};
-                color: {self.text_color};
-                font-size: {self.font_size}px;
-                border-radius: {self.border_radius}px;
-                border: 10px;
-            }}
-            QPushButton:hover {{
-                background-color: {self.hover_button_color};
-                border-radius: {self.hover_border_radius}px;
-                border: {self.hover_border}px;
-                padding: {self.padding_button}px;
-            }}
-        """)
-
+        self.button.setObjectName('trashButton')
+        self.button.setStyleSheet(self.css)
 
         self.button.setToolTip("This button deletes all the temporary files which are stored in your system!")
         self.button.clicked.connect(Utils.delete_temp_files)
 
         icon_layout = QHBoxLayout(self.button)
-        icon_layout.setContentsMargins(5, 1, 5, 5)
+        icon_layout.setContentsMargins(5, 0, 5, 0)
 
         svg_icon = QSvgWidget()
         svg_icon.load("svgs/trash.svg")
         svg_icon.setFixedSize(20, 20)
         icon_layout.addWidget(svg_icon)
+
 
         layout.addWidget(self.button)
 
@@ -265,8 +226,7 @@ class CustomTaskbar(QWidget):
 
 
     def updateWifiLabel(self):
-        is_connected = ConnectedToWifi.is_connectToInternet()
-
+        is_connected = ConnectedToWifi.is_wifi_connected()
         show_ssid = ConnectedToWifi.get_connected_wifi_ssid()
 
         if is_connected:
@@ -296,29 +256,6 @@ class CustomTaskbar(QWidget):
         QToolTip.hideText()
         event.accept()
 
-    def monitorApp(self, app_name, pid, button):
-        while psutil.pid_exists(pid):
-            time.sleep(5)
-
-        button.setProperty('app_pid', None)
-        button.setStyleSheet("border: none;")
-
-
-    def launchApp(self, app_name, app_path, button):
-
-        process = subprocess.Popen(app_path)
-        self.open_apps[app_name] = psutil.Process(process.pid)
-
-        button.setProperty('app_pid', process.pid)
-
-        button.setStyleSheet(f"""
-            border: {self.active_border}px solid {self.active_border_color};  /* Green border to indicate running state */
-            background-color: {self.active_background_color};     /* Darker background to indicate active state */
-            border-radius: {self.active_border_radius}px;
-        """)
-
-        threading.Thread(target=self.monitorApp, args=(app_name, process.pid, button), daemon=True).start()
-
     def updateSystemInfo(self):
         cpu_usage = Utils.get_cpu_usage()
         cpu_temp = Utils.get_cpu_temperature()
@@ -329,7 +266,6 @@ class CustomTaskbar(QWidget):
         gpu_temp = Nvidia.get_nvidia_gpu_temperature(self)
         used_vram = Nvidia.get_used_vram(self)
         tot_vram = Nvidia.get_tot_vram(self)
-
 
         ram_usage = Utils.ram_usage()
         ram_used_gb = Utils.get_used_ram_gb()
@@ -351,7 +287,7 @@ class CustomTaskbar(QWidget):
             battery = psutil.sensors_battery()[0]
             battery_plugged = psutil.sensors_battery()[2]
 
-        except TypeError:
+        except (IndexError, TypeError):
             battery = -1
             battery_plugged = ''
 
@@ -384,9 +320,8 @@ class CustomTaskbar(QWidget):
 
     def updateTime(self):
         today = date.today()
-        today = today.strftime("%d %B %Y")
-
-        current_time = time.strftime("%H:%M")
+        today = today.strftime("%d %b %Y")
+        current_time = time.strftime(self.display_time_layout)
         self.time_label.setText(f"{current_time} | {today}")
 
     def updateTooltip(self):

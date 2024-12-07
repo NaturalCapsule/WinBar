@@ -1,0 +1,80 @@
+#window {
+    background-color: #2e3440;
+    color: #d8dee9;
+    font-size: 14px;
+    border-radius: 7px;
+}
+
+#trashButton {
+    background-color: #2e3440;
+    color: #2e3440;
+    border: 10px;
+    padding: 3px;
+}
+
+#menuButton {
+    background-color: #2e3440;
+    color: #2e3440;
+    border: 10px;
+    padding: 3px;
+}
+
+#trashButton:hover {
+    background-color: #FFFFFF;
+    border-radius: 7px;
+    border: 10px;
+    padding: 10px;
+}
+
+#menuButton:hover {
+    background-color: #FFFFFF;
+    border-radius: 7px;
+    border: 10px;
+    padding: 10px;
+}
+
+#menu {
+    background-color: #2e3440;
+    border-radius: 5px;
+    color: #FFFFFF
+}
+
+#menu::item {
+    background-color: transparent;
+    padding: 2px;
+    border-radius: 7px;
+}
+
+#menu::item:selected {
+    background-color: #FFFFFF;
+    border-radius: 7px;
+    padding: 10px;
+}
+
+#menu::item:pressed {
+    background-color: #2e3440;
+}
+
+#dock {
+    background-color: #2e3440;
+    border-radius: 10px;
+    padding: 10px;
+    border: 10px;
+}
+
+#dock:hover { 
+    border: 10px;
+    background-color: #FFFFFF;
+    border-radius: 7px;
+    padding: 10px;
+}
+
+
+QToolTip {
+    background-color: #2e3440;
+    border: 1px solid #d8dee9;
+    padding: 5px;
+    color:#d8dee9;
+    font-size: 17px;
+    border-radius: 10px;
+}
