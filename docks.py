@@ -11,9 +11,9 @@ username = os.getlogin()
 
 class DockApp:
     def __init__(self, dock_layout):
-        if not pyuac.isUserAdmin():
-            elevate.elevate(show_console = False)
-            return
+        # if not pyuac.isUserAdmin():
+        #     elevate.elevate(show_console = False)
+        #     return
         self.dock_layout = dock_layout
         self.loadAppsFromConfig()
         self.open_apps = {}
@@ -57,6 +57,5 @@ class DockApp:
 
             button.setStyleSheet(self.css)
 
-            # threading.Thread(target=self.monitorApp, args=(app_name, process.pid, button), daemon=True).start()
         except Exception as e:
             print(f"Failed to launch {app_name}: {e}")

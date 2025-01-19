@@ -26,8 +26,44 @@
     padding: 10px;
 }
 
+#SideButtons {
+    background-color: #2e3440;
+    color: #FFFFFF;
+    /* background-color: #87CEEB; */
+}
+
+#SideMenu {
+    background-color: #2e3440;
+    color: #FFFFFF;
+    /* background-color: #452c5d; */
+}
+
+#WelcomeMenu {
+    background-color: #2e3440;
+    color: #FFFFFF;
+    font-size: 30px;
+}
+
+#CityMenu {
+    background-color: #2e3440;
+    color: #FFFFFF;
+    font-size: 30px;
+}
+
+#SkyMenu {
+    background-color: #2e3440;
+    color: #FFFFFF;
+    font-size: 20px;
+}
+
+#TempMenu {
+    background-color: #2e3440;
+    color: #FFFFFF;
+    font-size: 20px;
+}
+
 #menuButton:hover {
-    background-color: #FFFFFF;
+    background-color: #2e3440;
     border-radius: 7px;
     border: 10px;
     padding: 10px;

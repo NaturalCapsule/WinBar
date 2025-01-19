@@ -1,6 +1,8 @@
 ## STILL IN PROGRESS....
 
-# this is just a basic taskbar, maybe in the future i will make it more advance!.
+# Now working on the side panel!
+
+# READ THE `config.ini` IN THE CONFIG FOLDER I'VE EXPLAINED IT EVERYTHING.
 
 to use this app copy the command below, open your terminal and paste it:
 `pip install -r requirements.txt`
@@ -10,4 +12,6 @@ in the `config/config.ini` file you can add apps, change layouts. and within the
 for monitoring GPU it only works with nvidia gpus not with AMD or Intel gpus!! 
 
 
-![App screenshot](image.PNG)
+![App screenshots](images/image.PNG)
+![App screenshots](images/image2.PNG)
+![App screenshots](images/image3.PNG)

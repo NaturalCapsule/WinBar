@@ -16,6 +16,8 @@ from message import Message
 from exit import Exit
 from threading import Thread
 from menu import Menu
+# from side_panel import SidePanel
+import subprocess
 
 class CustomTaskbar(QWidget):
     def __init__(self):
@@ -23,8 +25,10 @@ class CustomTaskbar(QWidget):
         self.loadConfig()
         self.initUI()
         self.open_apps = {}
+        subprocess.Popen(["python", "side_panel.py"])
         self.monitor_exit_thread = Thread(target=self.exit_function, daemon=True)
         self.monitor_exit_thread.start()
+
 
     def loadConfig(self):
         config = configparser.ConfigParser(interpolation = None)
@@ -339,9 +343,9 @@ class CustomTaskbar(QWidget):
                 QToolTip.hideText()
         return super().eventFilter(obj, event)
 
-if __name__ == "__main__":
-    app = QApplication(sys.argv)
-    taskbar = CustomTaskbar()
-    taskbar.show()
+# if __name__ == "__main__":
+app = QApplication(sys.argv)
+taskbar = CustomTaskbar()
+taskbar.show()
 
-    sys.exit(app.exec_())
+sys.exit(app.exec_())
