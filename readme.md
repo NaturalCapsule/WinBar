@@ -2,7 +2,7 @@
 
 # Now working on the side panel!
 
-# READ THE `config.ini` IN THE CONFIG FOLDER I'VE EXPLAINED IT EVERYTHING.
+# READ THE `config.ini` IN THE CONFIG FOLDER I'VE EXPLAINED EVERYTHING.
 
 to use this app copy the command below, open your terminal and paste it:
 `pip install -r requirements.txt`
