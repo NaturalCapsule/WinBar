@@ -26,37 +26,60 @@
     padding: 10px;
 }
 
+#SidePanel {
+    /* For the coloring you need to go to the config.ini file to change the side panel color. */
+    color: #eeeeee;
+    border: 10px;
+    padding: 10px;
+}
+
+#SideSearch {
+    background-color: #2e3440;
+    color: white;
+    /* padding: 5px;
+    border-radius: 5px; */
+    border: 1px solid white;
+    font-size: 15px;
+}
+
 #SideButtons {
     background-color: #2e3440;
     color: #FFFFFF;
-    /* background-color: #87CEEB; */
+    border-radius: 10px;
+    padding: 10px;
+}
+
+#SideDate {
+    color: white;
+    font-size: 18px;
 }
 
 #SideMenu {
     background-color: #2e3440;
     color: #FFFFFF;
+    font-size: 14px;
     /* background-color: #452c5d; */
 }
 
-#WelcomeMenu {
+#SideWelcome {
     background-color: #2e3440;
     color: #FFFFFF;
     font-size: 30px;
 }
 
-#CityMenu {
+#SideCity {
     background-color: #2e3440;
     color: #FFFFFF;
     font-size: 30px;
 }
 
-#SkyMenu {
+#SideSky {
     background-color: #2e3440;
     color: #FFFFFF;
     font-size: 20px;
 }
 
-#TempMenu {
+#SideTemp {
     background-color: #2e3440;
     color: #FFFFFF;
     font-size: 20px;

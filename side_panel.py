@@ -1,4 +1,4 @@
-from PyQt5.QtWidgets import QApplication, QWidget, QLabel, QPushButton, QMenu, QAction
+from PyQt5.QtWidgets import QApplication, QWidget, QLabel, QPushButton, QMenu, QAction, QLineEdit
 from PyQt5.QtCore import Qt, QTimer, QPropertyAnimation, QRect, QEasingCurve, QPoint
 from PyQt5.QtGui import QColor, QPainter, QRegion
 import os
@@ -10,6 +10,10 @@ from configparser import ConfigParser
 import time
 from exit import Exit
 from threading import Thread
+import subprocess
+# import tkinter.messagebox as message
+from message import Message
+from date import get_calendar
 
 import pyuac
 import elevate
@@ -39,7 +43,7 @@ class SidePanel(QWidget):
 
         self.setMask(QRegion(self.rect(), QRegion.Rectangle))
         
-        self.setObjectName("SideButtons")
+        self.setObjectName("SidePanel")
         
         with open('config/style.css', 'r') as f:
             self.css = f.read()
@@ -48,6 +52,12 @@ class SidePanel(QWidget):
         self.timer = QTimer(self)
         self.timer.timeout.connect(self.check_keys)
         self.timer.start(100)
+
+        self.calendar = get_calendar()
+
+        self.date_timer = QTimer(self)
+        self.date_timer.timeout.connect(self.update_date)
+        self.date_timer.start(1000)
 
         self.weather = Weather()
         self.temp = self.weather.get_temp()
@@ -58,7 +68,7 @@ class SidePanel(QWidget):
         self.temp_timer.start(10000)
 
         self.setup_side_panel()
-
+        self.search_bar()
         self.animation = QPropertyAnimation(self, b"geometry")
 
         os.system('cls')
@@ -66,8 +76,6 @@ class SidePanel(QWidget):
 
         self.monitor_exit_thread = Thread(target=self.exit_function, daemon=True)
         self.monitor_exit_thread.start()
-
-
 
     def paintEvent(self, event):
         painter = QPainter(self)
@@ -77,7 +85,7 @@ class SidePanel(QWidget):
         painter.drawRoundedRect(self.rect(), 20, 20)
 
     def animate_panel(self, show):
-        self.animation.setDuration(500)
+        self.animation.setDuration(300)
         self.gap = 10
         self.top_gap = 25
 
@@ -93,27 +101,32 @@ class SidePanel(QWidget):
 
     def setup_side_panel(self):
         self.welcome_label = QLabel(f"Hi, {self.username}!", self)
-        # self.welcome_label.setStyleSheet("font-size: 30px; color: black;")
-        self.welcome_label.setObjectName("WelcomeMenu")
+        self.welcome_label.setObjectName("SideWelcome")
         self.welcome_label.setStyleSheet(self.css)
 
         self.city_label = QLabel(f"Your Current City: {self.weather.get_city()}", self)
-        self.city_label.setObjectName("CityMenu")
+        self.city_label.setObjectName("SideCity")
         self.city_label.setStyleSheet(self.css)
 
         self.sky_label = QLabel(self.sky, self)
-        self.sky_label.setObjectName("SkyMenu")
+        self.sky_label.setObjectName("SideSky")
         self.sky_label.setStyleSheet(self.css)
 
         self.temp_label = QLabel(self.temp, self)
-        self.temp_label.setObjectName("TempMenu")
+        self.temp_label.setObjectName("SideTemp")
         self.temp_label.setStyleSheet(self.css)
+
+        self.date_label = QLabel(self.calendar, self)
+        self.date_label.setObjectName("SideDate")
+        self.date_label.setStyleSheet(self.css)
 
         self.menu_button = QPushButton("Performance", self)
         self.menu_button.clicked.connect(self.menu)
+        self.menu_button.setObjectName("SideButtons")
 
         self.close_button = QPushButton("Close Panel", self)
         self.close_button.clicked.connect(self.closePanel_button)
+        self.close_button.setObjectName("SideButtons")
 
         self.load_widget_positions()
         self.apply_widget_positions()
@@ -152,6 +165,47 @@ class SidePanel(QWidget):
         menu_pos = QPoint(button_pos.x(), button_pos.y() - self._menu.height())
         self._menu.exec_(menu_pos)
 
+    def search_bar(self):
+
+        self.searchbar = QLineEdit(self)
+        self.searchbar.setPlaceholderText("Search the net here...")
+        self.searchbar.returnPressed.connect(self.perform_search)
+
+        self.searchbar.setObjectName("SideSearch")
+
+        self.load_widget_positions()
+        self.apply_widget_positions()
+
+    def perform_search(self):
+        query = self.searchbar.text()
+
+        firefox_path = r"C:/Program Files/Mozilla Firefox/firefox.exe"
+        chrome_path = r"C:/Program Files/Google/Chrome/Application/chrome.exe"
+
+        firefox = self.config.getboolean("Panel", "useFirefox")
+        chrome = self.config.getboolean("Panel", "useChrome")
+
+
+        if firefox and chrome:
+            Message.idk_what_to_call()
+
+        
+        if firefox:
+            web_engine = "firefox"
+            if os.path.exists(firefox_path):
+                subprocess.run([firefox_path, "--search", query])
+            else:
+                Message.message(web_engine = web_engine)
+
+        if chrome:
+            web_engine = "chrome"
+            if os.path.exists(chrome_path):
+                subprocess.run(f"start chrome https://www.google.com/search?q={query}", shell = True)
+            else:
+                Message.message(web_engine = web_engine)
+
+        self.searchbar.clear()
+
     def load_widget_positions(self):
         config = configparser.ConfigParser()
         config.read("config/config.ini")
@@ -184,6 +238,10 @@ class SidePanel(QWidget):
                 QApplication.quit()
                 break
             time.sleep(0.1) 
+
+    def update_date(self):
+        date = get_calendar()
+        self.date_label.setText(date)
 
     def update_weather(self):
         weather = Weather()
