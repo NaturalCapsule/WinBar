@@ -1,5 +1,5 @@
 from PyQt5.QtWidgets import QApplication, QWidget, QLabel, QPushButton, QMenu, QAction, QLineEdit
-from PyQt5.QtCore import Qt, QTimer, QPropertyAnimation, QRect, QEasingCurve, QPoint
+from PyQt5.QtCore import Qt, QTimer, QPropertyAnimation, QThread, pyqtSignal, QTimer, QRect, QEasingCurve, QPoint
 from PyQt5.QtGui import QColor, QPainter, QRegion
 import os
 import keyboard
@@ -11,12 +11,44 @@ import time
 from exit import Exit
 from threading import Thread
 import subprocess
-# import tkinter.messagebox as message
 from message import Message
 from date import get_calendar
+import speech_recognition as sr
 
-import pyuac
-import elevate
+
+# import pyuac
+# import elevate
+
+class VoiceCommandThread(QThread):
+    command_signal = pyqtSignal(str)
+
+    def __init__(self):
+        super().__init__()
+
+    def run(self):
+        while True:
+            command = self.listen_command()
+            if command:
+                self.command_signal.emit(command)
+
+    def listen_command(self):
+        try:
+            recognizer = sr.Recognizer()
+            with sr.Microphone() as source:
+                print("Listening...")
+                recognizer.adjust_for_ambient_noise(source)
+                audio = recognizer.listen(source)
+                command = recognizer.recognize_google(audio)
+                print(f"You said: {command}")
+                return command.lower()
+            
+        except sr.UnknownValueError:
+            print("did not understand that.")
+            return ""
+        except sr.RequestError:
+            print("Could not request results; check your network connection.")
+            return ""
+        
 
 class SidePanel(QWidget):
     def __init__(self):
@@ -49,6 +81,10 @@ class SidePanel(QWidget):
             self.css = f.read()
         self.setStyleSheet(self.css)
 
+        self.voice_thread = VoiceCommandThread()
+        self.voice_thread.command_signal.connect(self.execute_command)
+        self.voice_thread.start()
+
         self.timer = QTimer(self)
         self.timer.timeout.connect(self.check_keys)
         self.timer.start(100)
@@ -69,6 +105,8 @@ class SidePanel(QWidget):
 
         self.setup_side_panel()
         self.search_bar()
+
+
         self.animation = QPropertyAnimation(self, b"geometry")
 
         os.system('cls')
@@ -76,6 +114,7 @@ class SidePanel(QWidget):
 
         self.monitor_exit_thread = Thread(target=self.exit_function, daemon=True)
         self.monitor_exit_thread.start()
+
 
     def paintEvent(self, event):
         painter = QPainter(self)
@@ -137,7 +176,6 @@ class SidePanel(QWidget):
         self.animation.setEasingCurve(QEasingCurve.InOutQuad)
         self.animation.start()
 
-
     def menu(self):
         mods = Mods()
 
@@ -166,7 +204,6 @@ class SidePanel(QWidget):
         self._menu.exec_(menu_pos)
 
     def search_bar(self):
-
         self.searchbar = QLineEdit(self)
         self.searchbar.setPlaceholderText("Search the net here...")
         self.searchbar.returnPressed.connect(self.perform_search)
@@ -179,6 +216,8 @@ class SidePanel(QWidget):
     def perform_search(self):
         query = self.searchbar.text()
 
+
+
         firefox_path = r"C:/Program Files/Mozilla Firefox/firefox.exe"
         chrome_path = r"C:/Program Files/Google/Chrome/Application/chrome.exe"
 
@@ -189,7 +228,6 @@ class SidePanel(QWidget):
         if firefox and chrome:
             Message.idk_what_to_call()
 
-        
         if firefox:
             web_engine = "firefox"
             if os.path.exists(firefox_path):
@@ -199,8 +237,10 @@ class SidePanel(QWidget):
 
         if chrome:
             web_engine = "chrome"
+            new_query = query.split(" ")
+            chrome_query = "+".join(new_query)
             if os.path.exists(chrome_path):
-                subprocess.run(f"start chrome https://www.google.com/search?q={query}", shell = True)
+                subprocess.run(f"start chrome https://www.google.com/search?q={chrome_query}", shell = True)
             else:
                 Message.message(web_engine = web_engine)
 
@@ -238,6 +278,38 @@ class SidePanel(QWidget):
                 QApplication.quit()
                 break
             time.sleep(0.1) 
+
+    def execute_command(self, command):
+        if "open panel" in command:
+            if self.x() < 0:
+                self.show()
+                self.animate_panel(show=True)
+                
+        elif "close panel" in command:
+            self.animate_panel(show = False)
+
+        elif "search" in command:
+            command = command.split(" ")
+            command = command[1:]
+
+            self.new_command = " ".join(command)
+            firefox_path = r"C:/Program Files/Mozilla Firefox/firefox.exe"
+            chrome_path = r"C:/Program Files/Google/Chrome/Application/chrome.exe"
+
+            firefox = self.config.getboolean("Panel", "useFirefox")
+            chrome = self.config.getboolean("Panel", "useChrome")
+
+
+            if firefox:
+                if os.path.exists(firefox_path):
+                    subprocess.run([firefox_path, "--search", self.new_command])
+
+            if chrome:
+                new_query = self.new_command.split(" ")
+                chrome_query = "+".join(new_query)
+                if os.path.exists(chrome_path):
+                    subprocess.run(f"start chrome https://www.google.com/search?q={chrome_query}", shell = True)
+
 
     def update_date(self):
         date = get_calendar()

@@ -1,7 +1,6 @@
 from datetime import date
 import calendar
 
-
 def get_calendar():
     today = date.today()
     date1 = today.strftime('%d/%m/%Y')

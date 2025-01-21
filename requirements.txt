@@ -6,3 +6,4 @@ pyuac
 elevate
 psutil
 requests
+SpeechRecognition
