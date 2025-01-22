@@ -142,12 +142,15 @@ QToolTip {
 
 
 /* ClipPy Styling */
-#MainclipWindow {
+
+/* useless */
+/* #MainclipWindow {
     background-color: #2C3E50;
     color: white;
     font-family: 'Arial', sans-serif;
     padding: 20px;
-}
+    border-radius: 20px;
+} */
 
 #clipBoard {
     background-color: #34495E;
@@ -230,7 +233,7 @@ QToolTip {
     background: none;
 }
 
-#deleteButton {
+#ClipButtons {
     background-color: #16A085;
     color: white;
     border: 2px solid #1ABC9C;
@@ -239,13 +242,13 @@ QToolTip {
     padding: 8px 16px;
 }
 
-#deleteButton:hover {
+#ClipButtons:hover {
     background-color: #1ABC9C;
     border-color: #16A085;
     color: #F0F0F0;
 }
 
-#deleteButton:pressed {
+#ClipButtons:pressed {
     background-color: #148F77;
     border-color: #117A65;
     color: #E0E0E0;

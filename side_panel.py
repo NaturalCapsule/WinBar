@@ -12,6 +12,7 @@ from exit import Exit
 from threading import Thread
 import subprocess
 from message import Message
+from clipboard import ClipBoard
 import speech_recognition as sr
 from date import get_calendar
 
@@ -103,6 +104,8 @@ class SidePanel(QWidget):
         self.temp_timer.timeout.connect(self.update_weather)
         self.temp_timer.start(10000)
 
+        self.clipboard = ClipBoard()
+
         self.setup_side_panel()
         self.search_bar()
 
@@ -150,11 +153,7 @@ class SidePanel(QWidget):
         self.sky_label.setObjectName("SideSky")
         self.sky_label.setStyleSheet(self.css)
 
-        self.clipboard_button = QPushButton(self)
-        self.clipboard_button.setIcon(QIcon("svgs/clipboard.svg"))
-        self.clipboard_button.clicked.connect(self.clip_board)
 
-        self.clipboard_button.setObjectName("SideButtons")
 
         self.temp_label = QLabel(self.temp, self)
         self.temp_label.setObjectName("SideTemp")
@@ -163,6 +162,17 @@ class SidePanel(QWidget):
         self.date_label = QLabel(self.calendar, self)
         self.date_label.setObjectName("SideDate")
         self.date_label.setStyleSheet(self.css)
+
+        self.clipboard_button = QPushButton(self)
+        self.clipboard_button.setIcon(QIcon("svgs/clipboard.svg"))
+        self.clipboard_button.clicked.connect(self.clip_board)
+        self.clipboard_button.setObjectName("SideButtons")
+
+        self.mini_game = QPushButton(self)
+        self.mini_game.setIcon(QIcon("svgs/rocket.svg"))
+        self.mini_game.clicked.connect(self.run_miniGame)
+        self.mini_game.setObjectName("SideButtons")
+
 
         self.menu_button = QPushButton("Performance", self)
         self.menu_button.clicked.connect(self.menu)
@@ -176,13 +186,17 @@ class SidePanel(QWidget):
         self.apply_widget_positions()
 
     def clip_board(self):
-        return subprocess.run(["python", "clipboard.py"])
+        self.clipboard.toggle_side_clipboard()
 
     def closePanel_button(self):
         self.animation.setStartValue(QRect(self.gap, self.top_gap, self.panel_width, self.screen_height - self.top_gap))
         self.animation.setEndValue(QRect(-self.panel_width, self.top_gap, self.panel_width, self.screen_height - self.top_gap))
         self.animation.setEasingCurve(QEasingCurve.InOutQuad)
         self.animation.start()
+
+    def run_miniGame(self):
+        game_dir = os.path.join(os.getcwd(), "space-invaders")
+        subprocess.run(["python", "main.py"], cwd = game_dir)
 
     def menu(self):
         mods = Mods()
