@@ -4,7 +4,6 @@ import time
 from PyQt5.QtWidgets import QApplication, QLabel, QHBoxLayout, QWidget, QToolTip, QPushButton
 from PyQt5.QtCore import Qt, QTimer, QEvent, QPoint, QThread, pyqtSignal
 from PyQt5.QtSvg import QSvgWidget
-from PyQt5.QtGui import QSurfaceFormat
 import configparser
 import os
 from docks import DockApp
@@ -16,7 +15,6 @@ from message import Message
 from exit import Exit
 from threading import Thread
 from menu import Menu
-# from side_panel import SidePanel
 import subprocess
 
 class CustomTaskbar(QWidget):
@@ -160,7 +158,7 @@ class CustomTaskbar(QWidget):
         self.updateSystemInfo()
         timer = QTimer(self)
         timer.timeout.connect(self.updateSystemInfo)
-        # timer.start(1000)
+        timer.start(1000)
 
 
         self.updateTime()

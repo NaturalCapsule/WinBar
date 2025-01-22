@@ -1,3 +1,6 @@
+/* If you dont know styling go ask ChatGPT! */
+
+/* TaskPy Styling */
 #window {
     background-color: #2e3440;
     color: #d8dee9;
@@ -26,6 +29,17 @@
     padding: 10px;
 }
 
+QToolTip {
+    background-color: #2e3440;
+    border: 1px solid #d8dee9;
+    padding: 5px;
+    color:#d8dee9;
+    font-size: 17px;
+    border-radius: 10px;
+}
+
+
+/* SidePy Styling */
 #SidePanel {
     /* For the coloring you need to go to the config.ini file to change the side panel color. */
     color: #eeeeee;
@@ -36,8 +50,6 @@
 #SideSearch {
     background-color: #2e3440;
     color: white;
-    /* padding: 5px;
-    border-radius: 5px; */
     border: 1px solid white;
     font-size: 15px;
 }
@@ -129,11 +141,112 @@
 }
 
 
-QToolTip {
-    background-color: #2e3440;
-    border: 1px solid #d8dee9;
-    padding: 5px;
-    color:#d8dee9;
-    font-size: 17px;
+/* ClipPy Styling */
+#MainclipWindow {
+    background-color: #2C3E50;
+    color: white;
+    font-family: 'Arial', sans-serif;
+    padding: 20px;
+}
+
+#clipBoard {
+    background-color: #34495E;
+    border-radius: 12px;
+    padding: 10px;
+    color: white;
+    font-size: 14px;
+    border: 2px solid #16A085;
+}
+
+#clipBoard::item {
+    background-color: #2C3E50;
+    border: 1px solid transparent;
+    border-radius: 8px;
+    padding: 8px;
+    margin-bottom: 8px;
+}
+
+#clipBoard::item:hover {
+    background-color: #1ABC9C;
+    border: 1px solid #16A085;
+}
+
+#clipBoard::item:selected {
+    background-color: #1ABC9C;
+    color: white;
+    border: none;
+}
+
+/* Scrollbar custom style */
+#scrollBar:vertical {
+    background: #34495E;
+    width: 12px;
+    border-radius: 6px;
+    margin: 2px;
+}
+
+#scrollBar::handle:vertical {
+    background: #16A085;
+    border-radius: 6px;
+    min-height: 30px;
+}
+
+#scrollBar::handle:vertical:hover {
+    background: #1ABC9C;
+}
+
+#scrollBar::handle:vertical:pressed {
+    background: #1ABC9C;
+}
+
+#scrollBar::add-line:vertical, #scrollBar::sub-line:vertical {
+    border: none;
+    background: none;
+}
+
+#scrollBar:horizontal {
+    background: #34495E;
+    height: 12px;
+    border-radius: 6px;
+    margin: 2px;
+}
+
+#scrollBar::handle:horizontal {
+    background: #16A085;
+    border-radius: 6px;
+    min-width: 30px;
+}
+
+#scrollBar::handle:horizontal:hover {
+    background: #1ABC9C;
+}
+
+#scrollBar::handle:horizontal:pressed {
+    background: #1ABC9C;
+}
+
+#scrollBar::add-line:horizontal, #scrollBar::sub-line:horizontal {
+    border: none;
+    background: none;
+}
+
+#deleteButton {
+    background-color: #16A085;
+    color: white;
+    border: 2px solid #1ABC9C;
     border-radius: 10px;
+    font-size: 16px;
+    padding: 8px 16px;
+}
+
+#deleteButton:hover {
+    background-color: #1ABC9C;
+    border-color: #16A085;
+    color: #F0F0F0;
+}
+
+#deleteButton:pressed {
+    background-color: #148F77;
+    border-color: #117A65;
+    color: #E0E0E0;
 }

@@ -1,6 +1,6 @@
 from PyQt5.QtWidgets import QApplication, QWidget, QLabel, QPushButton, QMenu, QAction, QLineEdit
 from PyQt5.QtCore import Qt, QTimer, QPropertyAnimation, QThread, pyqtSignal, QTimer, QRect, QEasingCurve, QPoint
-from PyQt5.QtGui import QColor, QPainter, QRegion
+from PyQt5.QtGui import QColor, QPainter, QRegion, QIcon
 import os
 import keyboard
 from weather import Weather
@@ -12,8 +12,8 @@ from exit import Exit
 from threading import Thread
 import subprocess
 from message import Message
-from date import get_calendar
 import speech_recognition as sr
+from date import get_calendar
 
 
 # import pyuac
@@ -106,7 +106,6 @@ class SidePanel(QWidget):
         self.setup_side_panel()
         self.search_bar()
 
-
         self.animation = QPropertyAnimation(self, b"geometry")
 
         os.system('cls')
@@ -151,6 +150,12 @@ class SidePanel(QWidget):
         self.sky_label.setObjectName("SideSky")
         self.sky_label.setStyleSheet(self.css)
 
+        self.clipboard_button = QPushButton(self)
+        self.clipboard_button.setIcon(QIcon("svgs/clipboard.svg"))
+        self.clipboard_button.clicked.connect(self.clip_board)
+
+        self.clipboard_button.setObjectName("SideButtons")
+
         self.temp_label = QLabel(self.temp, self)
         self.temp_label.setObjectName("SideTemp")
         self.temp_label.setStyleSheet(self.css)
@@ -169,6 +174,9 @@ class SidePanel(QWidget):
 
         self.load_widget_positions()
         self.apply_widget_positions()
+
+    def clip_board(self):
+        return subprocess.run(["python", "clipboard.py"])
 
     def closePanel_button(self):
         self.animation.setStartValue(QRect(self.gap, self.top_gap, self.panel_width, self.screen_height - self.top_gap))
