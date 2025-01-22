@@ -7,3 +7,4 @@ elevate
 psutil
 requests
 SpeechRecognition
+pyperclip
