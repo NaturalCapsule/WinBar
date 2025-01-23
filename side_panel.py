@@ -153,8 +153,6 @@ class SidePanel(QWidget):
         self.sky_label.setObjectName("SideSky")
         self.sky_label.setStyleSheet(self.css)
 
-
-
         self.temp_label = QLabel(self.temp, self)
         self.temp_label.setObjectName("SideTemp")
         self.temp_label.setStyleSheet(self.css)
@@ -162,6 +160,7 @@ class SidePanel(QWidget):
         self.date_label = QLabel(self.calendar, self)
         self.date_label.setObjectName("SideDate")
         self.date_label.setStyleSheet(self.css)
+        
 
         self.clipboard_button = QPushButton(self)
         self.clipboard_button.setIcon(QIcon("svgs/clipboard.svg"))
@@ -172,7 +171,6 @@ class SidePanel(QWidget):
         self.mini_game.setIcon(QIcon("svgs/rocket.svg"))
         self.mini_game.clicked.connect(self.run_miniGame)
         self.mini_game.setObjectName("SideButtons")
-
 
         self.menu_button = QPushButton("Performance", self)
         self.menu_button.clicked.connect(self.menu)
@@ -306,7 +304,7 @@ class SidePanel(QWidget):
             if self.x() < 0:
                 self.show()
                 self.animate_panel(show=True)
-                
+        
         elif "close panel" in command:
             self.animate_panel(show = False)
 
@@ -331,6 +329,14 @@ class SidePanel(QWidget):
                 chrome_query = "+".join(new_query)
                 if os.path.exists(chrome_path):
                     subprocess.run(f"start chrome https://www.google.com/search?q={chrome_query}", shell = True)
+
+        elif "open clipboard" in command:
+            if self.clipboard.x() < 0:
+                self.clipboard.show()
+                self.clipboard.animate_app(show = True)
+
+        elif "close clipboard" in command:
+            self.clipboard.animate_app(show = False)
 
 
     def update_date(self):

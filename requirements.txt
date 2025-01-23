@@ -8,3 +8,5 @@ psutil
 requests
 SpeechRecognition
 pyperclip
+opencv-python
+pygame
