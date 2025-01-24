@@ -15,6 +15,7 @@ from message import Message
 from clipboard import ClipBoard
 import speech_recognition as sr
 from date import get_calendar
+from screenshot import take_screenshot
 
 
 # import pyuac
@@ -100,6 +101,10 @@ class SidePanel(QWidget):
         self.temp = self.weather.get_temp()
         self.sky = self.weather.get_sky()
 
+        self.screenshot_timer = QTimer(self)
+        self.screenshot_timer.timeout.connect(take_screenshot)
+        self.screenshot_timer.start(100)
+
         self.temp_timer = QTimer(self)
         self.temp_timer.timeout.connect(self.update_weather)
         self.temp_timer.start(10000)
@@ -160,7 +165,7 @@ class SidePanel(QWidget):
         self.date_label = QLabel(self.calendar, self)
         self.date_label.setObjectName("SideDate")
         self.date_label.setStyleSheet(self.css)
-        
+
 
         self.clipboard_button = QPushButton(self)
         self.clipboard_button.setIcon(QIcon("svgs/clipboard.svg"))
@@ -337,6 +342,9 @@ class SidePanel(QWidget):
 
         elif "close clipboard" in command:
             self.clipboard.animate_app(show = False)
+
+        elif "take a screenshot" in command:
+            subprocess.run(["python", "screenshot.py"])
 
 
     def update_date(self):
