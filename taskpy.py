@@ -17,7 +17,7 @@ from threading import Thread
 from menu import Menu
 import subprocess
 
-class CustomTaskbar(QWidget):
+class Taskpy(QWidget):
     def __init__(self):
         super().__init__()
         self.loadConfig()
@@ -239,6 +239,7 @@ class CustomTaskbar(QWidget):
             self.wifi_icon.setToolTip("No Wi-Fi connection")
 
 
+
     def show_tooltip_above_wifi(self, event):
         tooltip_position = self.wifi_icon.mapToGlobal(QPoint(0, -self.wifi_icon.height() - 40))
         QToolTip.showText(tooltip_position, self.wifi_icon.toolTip(), self.wifi_icon)
@@ -272,6 +273,7 @@ class CustomTaskbar(QWidget):
         ram_usage = Utils.ram_usage()
         ram_used_gb = Utils.get_used_ram_gb()
         ram_total_gb = Utils.get_total_ram_gb()
+
 
 
         self.cpu_tooltip = f"CPU Frequency: {cpu_freq:.2f} MHz\nCPU Usage: {cpu_usage}%\nCPU Temp: {cpu_temp}"
@@ -341,9 +343,9 @@ class CustomTaskbar(QWidget):
                 QToolTip.hideText()
         return super().eventFilter(obj, event)
 
-# if __name__ == "__main__":
+
 app = QApplication(sys.argv)
-taskbar = CustomTaskbar()
+taskbar = Taskpy()
 taskbar.show()
 
 sys.exit(app.exec_())

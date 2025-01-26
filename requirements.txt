@@ -10,3 +10,6 @@ SpeechRecognition
 pyperclip
 opencv-python
 pygame
+keyboard
+pyautogui
+pyaudio

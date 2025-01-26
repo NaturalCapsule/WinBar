@@ -200,7 +200,6 @@ class ClipBoard(QWidget):
 if __name__ == "__main__":
     app = QApplication(sys.argv)
     window = ClipBoard()
-    window.setWindowTitle("Clipboard History")
     window.setWindowIcon(QIcon("svgs/clipboard.svg"))
     window.resize(500, 500)
     window.show()

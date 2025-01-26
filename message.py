@@ -9,3 +9,6 @@ class Message:
 
     def idk_what_to_call():
         message.showwarning("Warning!", "You set firefox and chrome to True make sure one of them is False to search the web!")
+
+    def uhhh():
+        message.showerror("Firefox and Chrome are set to False", "Firefox and Chrome are set to False\nMake sure one of them is set to True to search the net!")

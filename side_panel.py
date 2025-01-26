@@ -1,6 +1,6 @@
 from PyQt5.QtWidgets import QApplication, QWidget, QLabel, QPushButton, QMenu, QAction, QLineEdit
 from PyQt5.QtCore import Qt, QTimer, QPropertyAnimation, QThread, pyqtSignal, QTimer, QRect, QEasingCurve, QPoint
-from PyQt5.QtGui import QColor, QPainter, QRegion, QIcon
+from PyQt5.QtGui import QColor, QPainter, QRegion, QIcon, QPixmap, QBitmap
 import os
 import keyboard
 from weather import Weather
@@ -16,10 +16,13 @@ from clipboard import ClipBoard
 import speech_recognition as sr
 from date import get_calendar
 from screenshot import take_screenshot
+# from winrt.windows.media.control import GlobalSystemMediaTransportControlsSessionManager as MediaManager
+# import asyncio
+from winrt.windows.media.control import GlobalSystemMediaTransportControlsSessionManager as MediaManager
+from winrt.windows.storage.streams import DataReader
+import asyncio
 
 
-# import pyuac
-# import elevate
 
 class VoiceCommandThread(QThread):
     command_signal = pyqtSignal(str)
@@ -51,6 +54,7 @@ class VoiceCommandThread(QThread):
             print("Could not request results; check your network connection.")
             return ""
         
+username = os.getlogin()
 
 class SidePanel(QWidget):
     def __init__(self):
@@ -105,9 +109,24 @@ class SidePanel(QWidget):
         self.screenshot_timer.timeout.connect(take_screenshot)
         self.screenshot_timer.start(100)
 
+        self.media_timer = QTimer(self)
+        self.media_timer.timeout.connect(self.update_media)
+        self.media_timer.start(1000)
+
+        self.image_timer = QTimer(self)
+        self.image_timer.timeout.connect(self.update_image)
+        self.image_timer.start(1000)
+
+
+        self.save_timer = QTimer(self)
+        self.save_timer.timeout.connect(self.get_image)
+        self.save_timer.start(1000)
+
         self.temp_timer = QTimer(self)
         self.temp_timer.timeout.connect(self.update_weather)
         self.temp_timer.start(10000)
+
+        self.title = self.c_session_info()
 
         self.clipboard = ClipBoard()
 
@@ -122,6 +141,90 @@ class SidePanel(QWidget):
         self.monitor_exit_thread = Thread(target=self.exit_function, daemon=True)
         self.monitor_exit_thread.start()
 
+
+    def play_pause(self):
+        async def get_session():
+            session_manager = await MediaManager.request_async()
+            current_session = session_manager.get_current_session()
+            return await current_session.try_toggle_play_pause_async()
+        
+        
+        paue_play = asyncio.run(get_session())
+        return paue_play
+
+    def c_session_info(self):
+        async def get_info():
+            session_manager = await MediaManager.request_async()
+            current_session = session_manager.get_current_session()
+
+            try:
+                info = await current_session.try_get_media_properties_async()
+                title = info.title
+                artist = info.artist
+                return f"Now Playing: {title} by {artist}"
+
+            except Exception as e:
+                return f"Error fetching media properties: {e}"
+
+        session = asyncio.run(get_info())
+        return session
+
+
+    async def control_media(self):
+        session_manager = await MediaManager.request_async()
+        current_session = session_manager.get_current_session()
+
+        if not current_session:
+            return "No active media session to control."
+
+        try:
+            info = await current_session.try_get_media_properties_async()
+            thumbnail = info.thumbnail
+
+
+            if thumbnail:
+                await self.save_thumbnail(thumbnail, "thumbnail.jpg")
+
+        except Exception as e:
+            return ""
+
+    async def save_thumbnail(self, thumbnail, filename, directory=fr"C:\Users\{username}\AppData\Local\Temp"):
+        try:
+            if directory:
+                os.makedirs(directory, exist_ok=True)
+                filepath = os.path.join(directory, filename)
+            else:
+                filepath = filename
+
+            stream = await thumbnail.open_read_async()
+
+            input_stream = stream.get_input_stream_at(0)
+            data_reader = DataReader(input_stream)
+            data_reader.load_async(stream.size)
+
+            data = data_reader.read_bytes(stream.size)
+            data_reader.detach_stream()
+
+            with open(filepath, "wb") as file:
+                file.write(bytes(data))
+
+
+        except Exception as e:
+            return ""
+
+    def get_image(self):
+        if self.loop:
+            asyncio.run_coroutine_threadsafe(self.control_media(), self.loop)
+        else:
+            print("Loop not available yet.")
+
+    def update_media(self):
+        title = self.c_session_info()
+        self.media_label.setText(title)
+
+    def update_image(self, path = fr"C:\Users\{username}\AppData\Local\Temp\thumbnail.jpg"):
+        pixmap = QPixmap(path)
+        self.media_image.setPixmap(pixmap)
 
     def paintEvent(self, event):
         painter = QPainter(self)
@@ -166,6 +269,20 @@ class SidePanel(QWidget):
         self.date_label.setObjectName("SideDate")
         self.date_label.setStyleSheet(self.css)
 
+        self.media_label = QLabel(self.title, self)
+        self.media_label.setObjectName("SideMedia")
+        self.media_label.setStyleSheet(self.css)
+        self.media_label.setWordWrap(True)
+
+        self.media_image = QLabel(self)
+        self.media_image.setPixmap(self.pix())
+
+        self.media_button = QPushButton(self)
+        self.media_button.setIcon(QIcon('svgs/play.svg'))
+        self.media_button.setObjectName("SideButtons")
+        self.media_button.clicked.connect(self.toggle_icon)
+        self.setStyleSheet(self.css)
+        self.is_playing = False
 
         self.clipboard_button = QPushButton(self)
         self.clipboard_button.setIcon(QIcon("svgs/clipboard.svg"))
@@ -188,6 +305,40 @@ class SidePanel(QWidget):
         self.load_widget_positions()
         self.apply_widget_positions()
 
+    def toggle_icon(self):
+        if self.is_playing:
+            # Change to 'pause' icon when the button is clicked
+            self.media_button.setIcon(QIcon("svgs/play.svg"))
+        else:
+            # Change to 'play' icon when the button is clicked
+            self.media_button.setIcon(QIcon("svgs/pause.svg"))
+        
+        # Toggle the state
+        self.is_playing = not self.is_playing # Change back to the first icon
+
+    def pix(self):
+        pixmap = QPixmap(f"c:/Users/{self.username}/AppData/Local/Temp/thumbnail.jpg")
+        pixmap = pixmap.scaled(250, 250, Qt.KeepAspectRatio)
+
+        # Create a mask with transparent background
+        mask = QPixmap(pixmap.size())
+        mask.fill(Qt.transparent)
+
+        # Create a painter to draw the rounded mask
+        painter = QPainter(mask)
+        painter.setBrush(Qt.white)
+        painter.setPen(Qt.transparent)
+
+        painter.drawRoundedRect(0, 0, pixmap.width(), pixmap.height(), 30, 30)  # 20 is the radius for rounded corners
+        painter.end()
+
+        # Convert the mask to a QBitmap using fromImage
+        bitmap = QBitmap.fromImage(mask.toImage())
+
+        # Apply the QBitmap mask to the pixmap
+        pixmap.setMask(bitmap)
+
+        return pixmap
     def clip_board(self):
         self.clipboard.toggle_side_clipboard()
 
@@ -241,17 +392,17 @@ class SidePanel(QWidget):
     def perform_search(self):
         query = self.searchbar.text()
 
-
-
         firefox_path = r"C:/Program Files/Mozilla Firefox/firefox.exe"
         chrome_path = r"C:/Program Files/Google/Chrome/Application/chrome.exe"
 
         firefox = self.config.getboolean("Panel", "useFirefox")
         chrome = self.config.getboolean("Panel", "useChrome")
 
-
         if firefox and chrome:
             Message.idk_what_to_call()
+
+        if not firefox and not chrome:
+            Message.uhhh()
 
         if firefox:
             web_engine = "firefox"
@@ -309,7 +460,7 @@ class SidePanel(QWidget):
             if self.x() < 0:
                 self.show()
                 self.animate_panel(show=True)
-        
+
         elif "close panel" in command:
             self.animate_panel(show = False)
 
@@ -368,7 +519,22 @@ class SidePanel(QWidget):
             self.animate_panel(show=False)
 
 
-app = QApplication([])
-side = SidePanel()
-side.show()
-app.exec_()
+def start_asyncio_loop(panel):
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
+    panel.loop = loop  # Set the loop in the panel object
+    loop.run_forever()
+
+def run_loop():
+    app = QApplication([])
+
+    # Create the side panel instance
+    side = SidePanel()
+    
+    # Create and start the asyncio event loop in a separate thread
+    Thread(target=start_asyncio_loop, args=(side,), daemon=True).start()
+
+    side.show()
+    app.exec_()
+
+run_loop()
