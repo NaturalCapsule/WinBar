@@ -16,8 +16,6 @@ from clipboard import ClipBoard
 import speech_recognition as sr
 from date import get_calendar
 from screenshot import take_screenshot
-# from winrt.windows.media.control import GlobalSystemMediaTransportControlsSessionManager as MediaManager
-# import asyncio
 from winrt.windows.media.control import GlobalSystemMediaTransportControlsSessionManager as MediaManager
 from winrt.windows.storage.streams import DataReader
 import asyncio
@@ -114,13 +112,17 @@ class SidePanel(QWidget):
         self.media_timer.start(1000)
 
         self.image_timer = QTimer(self)
-        self.image_timer.timeout.connect(self.update_image)
+        self.image_timer.timeout.connect(self.pix)
         self.image_timer.start(1000)
 
 
         self.save_timer = QTimer(self)
         self.save_timer.timeout.connect(self.get_image)
         self.save_timer.start(1000)
+
+        self.test_timer = QTimer(self)
+        self.test_timer.timeout.connect(self.check_media_session)
+        self.test_timer.start(1000)
 
         self.temp_timer = QTimer(self)
         self.temp_timer.timeout.connect(self.update_weather)
@@ -144,13 +146,15 @@ class SidePanel(QWidget):
 
     def play_pause(self):
         async def get_session():
-            session_manager = await MediaManager.request_async()
-            current_session = session_manager.get_current_session()
-            return await current_session.try_toggle_play_pause_async()
+            try:
+                session_manager = await MediaManager.request_async()
+                current_session = session_manager.get_current_session()
+                return await current_session.try_toggle_play_pause_async()
+            except AttributeError:
+                pass
         
-        
-        paue_play = asyncio.run(get_session())
-        return paue_play
+        pause_play = asyncio.run(get_session())
+        return pause_play
 
     def c_session_info(self):
         async def get_info():
@@ -164,7 +168,7 @@ class SidePanel(QWidget):
                 return f"Now Playing: {title} by {artist}"
 
             except Exception as e:
-                return f"Error fetching media properties: {e}"
+                return "No active media session to control."
 
         session = asyncio.run(get_info())
         return session
@@ -222,10 +226,6 @@ class SidePanel(QWidget):
         title = self.c_session_info()
         self.media_label.setText(title)
 
-    def update_image(self, path = fr"C:\Users\{username}\AppData\Local\Temp\thumbnail.jpg"):
-        pixmap = QPixmap(path)
-        self.media_image.setPixmap(pixmap)
-
     def paintEvent(self, event):
         painter = QPainter(self)
         painter.setRenderHint(QPainter.Antialiasing)
@@ -276,12 +276,14 @@ class SidePanel(QWidget):
 
         self.media_image = QLabel(self)
         self.media_image.setPixmap(self.pix())
+        self.media_image.setScaledContents(True)
+        self.media_image.setFixedSize(250, 150)
+        self.media_image.setAlignment(Qt.AlignCenter)
 
         self.media_button = QPushButton(self)
         self.media_button.setIcon(QIcon('svgs/play.svg'))
         self.media_button.setObjectName("SideButtons")
         self.media_button.clicked.connect(self.toggle_icon)
-        self.setStyleSheet(self.css)
         self.is_playing = False
 
         self.clipboard_button = QPushButton(self)
@@ -307,38 +309,68 @@ class SidePanel(QWidget):
 
     def toggle_icon(self):
         if self.is_playing:
-            # Change to 'pause' icon when the button is clicked
             self.media_button.setIcon(QIcon("svgs/play.svg"))
         else:
-            # Change to 'play' icon when the button is clicked
             self.media_button.setIcon(QIcon("svgs/pause.svg"))
+        self.is_playing = not self.is_playing
+
+
+        self.play_pause()
+
+    def check_media_session(self):
+        current_session = self.c_session_info()
         
-        # Toggle the state
-        self.is_playing = not self.is_playing # Change back to the first icon
+        if current_session == "No active media session to control.":
+            self.media_button.setIcon(QIcon("svgs/play.svg"))
+            try:
+                self.media_button.clicked.disconnect()
+            except TypeError:
+                pass
+        else:
+            try:
+                self.media_button.clicked.disconnect()
+            except TypeError:
+                pass
+            self.media_button.clicked.connect(self.toggle_icon)
 
     def pix(self):
         pixmap = QPixmap(f"c:/Users/{self.username}/AppData/Local/Temp/thumbnail.jpg")
-        pixmap = pixmap.scaled(250, 250, Qt.KeepAspectRatio)
+        pixmap = pixmap.scaled(250, 100, Qt.KeepAspectRatioByExpanding, Qt.SmoothTransformation)
 
-        # Create a mask with transparent background
+        # Create and apply a rounded rectangle mask
         mask = QPixmap(pixmap.size())
-        mask.fill(Qt.transparent)
+        mask.fill(Qt.transparent)  # Transparent background for the mask
 
-        # Create a painter to draw the rounded mask
         painter = QPainter(mask)
-        painter.setBrush(Qt.white)
-        painter.setPen(Qt.transparent)
-
-        painter.drawRoundedRect(0, 0, pixmap.width(), pixmap.height(), 30, 30)  # 20 is the radius for rounded corners
+        painter.setRenderHint(QPainter.Antialiasing)
+        painter.setBrush(Qt.white)  # White for the rounded rectangle
+        painter.setPen(Qt.transparent)  # No border
+        rect = QRect(0, 0, pixmap.width(), pixmap.height())
+        painter.drawRoundedRect(rect, 30, 30)  # Adjust corner radius if needed
         painter.end()
 
-        # Convert the mask to a QBitmap using fromImage
-        bitmap = QBitmap.fromImage(mask.toImage())
+        # Apply the mask to the pixmap
+        pixmap.setMask(mask.createHeuristicMask())
 
-        # Apply the QBitmap mask to the pixmap
-        pixmap.setMask(bitmap)
+        # Check for active media session
+        current_session = self.c_session_info()
+
+        if current_session != "No active media session to control.":
+            self.media_image.setPixmap(pixmap)  # Set the rounded image pixmap
+        else:
+            # Create a blank pixmap with a placeholder text
+            blank_pixmap = QPixmap(self.media_image.size())
+            blank_pixmap.fill(Qt.transparent)  # Transparent background
+
+            painter = QPainter(blank_pixmap)
+            painter.setPen(QColor("gray"))  # Set text color
+            painter.drawText(blank_pixmap.rect(), Qt.AlignCenter, "No Media")  # Centered text
+            painter.end()
+
+            self.media_image.setPixmap(blank_pixmap)  # Set placeholder pixmap
 
         return pixmap
+        
     def clip_board(self):
         self.clipboard.toggle_side_clipboard()
 
@@ -522,16 +554,14 @@ class SidePanel(QWidget):
 def start_asyncio_loop(panel):
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
-    panel.loop = loop  # Set the loop in the panel object
+    panel.loop = loop
     loop.run_forever()
 
 def run_loop():
     app = QApplication([])
 
-    # Create the side panel instance
     side = SidePanel()
     
-    # Create and start the asyncio event loop in a separate thread
     Thread(target=start_asyncio_loop, args=(side,), daemon=True).start()
 
     side.show()
