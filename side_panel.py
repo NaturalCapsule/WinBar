@@ -14,12 +14,12 @@ import subprocess
 from message import Message
 from clipboard import ClipBoard
 import speech_recognition as sr
-from date import get_calendar
+from date import get_calendar_html
 from screenshot import take_screenshot
 from winrt.windows.media.control import GlobalSystemMediaTransportControlsSessionManager as MediaManager
 from winrt.windows.storage.streams import DataReader
 import asyncio
-
+from rich import print
 
 
 class VoiceCommandThread(QThread):
@@ -93,7 +93,7 @@ class SidePanel(QWidget):
         self.timer.timeout.connect(self.check_keys)
         self.timer.start(100)
 
-        self.calendar = get_calendar()
+        self.calendar = get_calendar_html()
 
         self.date_timer = QTimer(self)
         self.date_timer.timeout.connect(self.update_date)
@@ -118,7 +118,7 @@ class SidePanel(QWidget):
 
         self.save_timer = QTimer(self)
         self.save_timer.timeout.connect(self.get_image)
-        self.save_timer.start(1000)
+        self.save_timer.start(100)
 
         self.test_timer = QTimer(self)
         self.test_timer.timeout.connect(self.check_media_session)
@@ -138,7 +138,7 @@ class SidePanel(QWidget):
         self.animation = QPropertyAnimation(self, b"geometry")
 
         os.system('cls')
-        print("---------------YOU CAN NOW CLOSE THIS TERMINAL!!---------------")
+        print("[cyan]---------------YOU CAN NOW CLOSE THIS TERMINAL!!---------------")
 
         self.monitor_exit_thread = Thread(target=self.exit_function, daemon=True)
         self.monitor_exit_thread.start()
@@ -192,6 +192,10 @@ class SidePanel(QWidget):
         except Exception as e:
             return ""
 
+    # def update_thumbnail(self):
+    #     image = asyncio.run(self.control_media())
+    #     return image
+
     async def save_thumbnail(self, thumbnail, filename, directory=fr"C:\Users\{username}\AppData\Local\Temp"):
         try:
             if directory:
@@ -211,7 +215,7 @@ class SidePanel(QWidget):
 
             with open(filepath, "wb") as file:
                 file.write(bytes(data))
-
+                # print("SAVED")
 
         except Exception as e:
             return ""
@@ -334,40 +338,36 @@ class SidePanel(QWidget):
             self.media_button.clicked.connect(self.toggle_icon)
 
     def pix(self):
-        pixmap = QPixmap(f"c:/Users/{self.username}/AppData/Local/Temp/thumbnail.jpg")
+        pixmap = QPixmap(fr"c:\Users\{self.username}\AppData\Local\Temp\thumbnail.jpg")
         pixmap = pixmap.scaled(250, 100, Qt.KeepAspectRatioByExpanding, Qt.SmoothTransformation)
 
-        # Create and apply a rounded rectangle mask
         mask = QPixmap(pixmap.size())
-        mask.fill(Qt.transparent)  # Transparent background for the mask
+        mask.fill(Qt.transparent)
 
         painter = QPainter(mask)
         painter.setRenderHint(QPainter.Antialiasing)
-        painter.setBrush(Qt.white)  # White for the rounded rectangle
-        painter.setPen(Qt.transparent)  # No border
+        painter.setBrush(Qt.white)
+        painter.setPen(Qt.transparent)
         rect = QRect(0, 0, pixmap.width(), pixmap.height())
-        painter.drawRoundedRect(rect, 30, 30)  # Adjust corner radius if needed
+        painter.drawRoundedRect(rect, 30, 30)
         painter.end()
 
-        # Apply the mask to the pixmap
         pixmap.setMask(mask.createHeuristicMask())
 
-        # Check for active media session
         current_session = self.c_session_info()
 
         if current_session != "No active media session to control.":
-            self.media_image.setPixmap(pixmap)  # Set the rounded image pixmap
+            self.media_image.setPixmap(pixmap)
         else:
-            # Create a blank pixmap with a placeholder text
             blank_pixmap = QPixmap(self.media_image.size())
-            blank_pixmap.fill(Qt.transparent)  # Transparent background
+            blank_pixmap.fill(Qt.transparent)
 
             painter = QPainter(blank_pixmap)
-            painter.setPen(QColor("gray"))  # Set text color
-            painter.drawText(blank_pixmap.rect(), Qt.AlignCenter, "No Media")  # Centered text
+            painter.setPen(QColor("gray"))
+            painter.drawText(blank_pixmap.rect(), Qt.AlignCenter, "No Media")
             painter.end()
 
-            self.media_image.setPixmap(blank_pixmap)  # Set placeholder pixmap
+            self.media_image.setPixmap(blank_pixmap)
 
         return pixmap
         
@@ -531,7 +531,7 @@ class SidePanel(QWidget):
 
 
     def update_date(self):
-        date = get_calendar()
+        date = get_calendar_html()
         self.date_label.setText(date)
 
     def update_weather(self):
