@@ -59,10 +59,10 @@
 }
 
 #dock {
-    background-color: #2e3440;
-    border-radius: 10px;
-    padding: 10px;
     border: 10px;
+    background-color: #2e3440;
+    border-radius: 7px;
+    padding: 10px;
 }
 
 #dock:hover { 
@@ -98,12 +98,77 @@ QToolTip {
     font-size: 15px;
 }
 
-#SideButtons {
+#MediaButton {
     background-color: #2e3440;
     color: #FFFFFF;
     border-radius: 10px;
     padding: 10px;
 }
+
+#rewindButton {
+    background-color: #2e3440;
+    color: #FFFFFF;
+    border-radius: 10px;
+    padding: 10px;
+}
+
+#forwardButton {
+    background-color: #2e3440;
+    color: #FFFFFF;
+    border-radius: 10px;
+    padding: 10px;
+}
+
+#ClipButton {
+    background-color: #2e3440;
+    color: #FFFFFF;
+    border-radius: 10px;
+    padding: 10px;
+}
+#ClipButton:hover {
+    background-color: #003399;
+    border-radius: 10px;
+    padding: 10px;
+}
+
+
+#MiniGameButton {
+    background-color: #2e3440;
+    color: #944a4a;
+    border-radius: 10px;
+    padding: 10px;
+}
+#MiniGameButton:hover {
+    background-color: #003399;
+    border-radius: 10px;
+    padding: 10px;
+}
+
+
+#CloseButton {
+    background-color: #2e3440;
+    color: #FFFFFF;
+    border-radius: 10px;
+    padding: 10px;
+}
+#CloseButton:hover {
+    background-color: #003399;
+    border-radius: 10px;
+    padding: 10px;
+}
+
+#PerformanceButton {
+    background-color: #2e3440;
+    color: white;
+    border-radius: 10px;
+    padding: 10px;
+}
+#PerformanceButton:hover {
+    background-color: #003399;
+    border-radius: 10px;
+    padding: 10px;
+}
+
 
 #SideDate {
     background-color: white;
@@ -140,10 +205,14 @@ QToolTip {
 }
 
 #SideMenu {
-    background-color: #2e3440;
+    background-color: #cd9191;
     color: #FFFFFF;
     font-size: 14px;
-    /* background-color: #452c5d; */
+}
+#SideMenu::item:selected {
+    background-color: #9591cd;
+    color: #df5b5b;
+    font-size: 14px;
 }
 
 #SideWelcome {

@@ -1,6 +1,7 @@
 import sys
 import psutil
 import time
+from PyQt5.QtGui import QColor, QPainter
 from PyQt5.QtWidgets import QApplication, QLabel, QHBoxLayout, QWidget, QToolTip, QPushButton
 from PyQt5.QtCore import Qt, QTimer, QEvent, QPoint, QThread, pyqtSignal
 from PyQt5.QtSvg import QSvgWidget
@@ -23,6 +24,9 @@ class Taskpy(QWidget):
         self.loadConfig()
         self.initUI()
         self.open_apps = {}
+
+
+
         subprocess.Popen(["python", "side_panel.py"])
         self.monitor_exit_thread = Thread(target=self.exit_function, daemon=True)
         self.monitor_exit_thread.start()
@@ -41,6 +45,13 @@ class Taskpy(QWidget):
         self.trash_layout: int = config.getint('Appearance', 'trashLayout')
         self.show_battery = config.getboolean('Appearance', 'showBattery')
         self.display_time_layout = config.get('Appearance', 'timeLayout')
+
+        border_radius = config.get('Appearance', 'taskpyBorderRadius')
+        self.border_radius1, self.border_radius2 = border_radius.split(', ')[0], border_radius.split(', ')[1]
+
+        self.colors = config.get('Appearance', 'taskpyColor')
+
+        self.color = self.colors.split(',')
 
     def taskbar_warning(self):
         if self.taskbar_height > 80:
@@ -182,6 +193,14 @@ class Taskpy(QWidget):
         update_battery.start(1000)
 
         self.sys_info_label.installEventFilter(self)
+
+    def paintEvent(self, event):
+
+        painter = QPainter(self)
+        painter.setRenderHint(QPainter.Antialiasing)
+
+        painter.setBrush(QColor(int(self.color[0]), int(self.color[1]), int(self.color[2])))
+        painter.drawRoundedRect(self.rect(), int(self.border_radius1), int(self.border_radius2))
 
 
     def menu_button(self, layout):

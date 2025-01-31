@@ -4,33 +4,36 @@ import keyboard
 import subprocess
 
 
-username = os.getlogin()
-file_path = f"C:/Users/{username}/AppData/count.txt"
-saved_pic = "c:/Users/sxxve/Pictures"
+def take_shot():
 
-count = 0
+    username = os.getlogin()
+    file_path = f"C:/Users/{username}/AppData/count.txt"
+    saved_pic = "c:/Users/sxxve/Pictures"
 
-if not os.path.exists(file_path):
-    with open(file_path, "w") as fp:
-        fp.write(str(count))
+    count = 0
 
-
-with open(file_path, "r") as file:
-    num = file.read()
-    num = int(num) + 1
-
-count = num
-
-with open(file_path, "w") as f:
-    f.write(str(count))
-    count = int(count) + 1
-
-count = num
+    if not os.path.exists(file_path):
+        with open(file_path, "w") as fp:
+            fp.write(str(count))
 
 
-pyautogui.screenshot(f"{saved_pic}/screenshot_{count}.PNG")
+    with open(file_path, "r") as file:
+        num = file.read()
+        num = int(num) + 1
+
+    count = num
+
+    with open(file_path, "w") as f:
+        f.write(str(count))
+        count = int(count) + 1
+
+    count = num
+
+
+    pyautogui.screenshot(f"{saved_pic}/screenshot_{count}.PNG")
 
 
 def take_screenshot():
     if keyboard.is_pressed('ctrl') and keyboard.is_pressed('shift') and keyboard.is_pressed('S'):
-        subprocess.run(["python", "screenshot.py"])
+        # subprocess.run(["python", "screenshot.py"])
+        take_shot()
