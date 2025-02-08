@@ -1,16 +1,32 @@
 /* If you dont know styling go ask ChatGPT! */
 
-/* TaskPy Styling */
+/* Bar Styling */
 #window {
+    background-color: #2e3440;
+    color: white;
+    font-size: 14px;
+    border-radius: 7px;
+}
+
+#infoLabel {
     background-color: #2e3440;
     color: #d8dee9;
     font-size: 14px;
     border-radius: 7px;
 }
 
+#timeLabel {
+    background-color: #2e3440;
+    color: #d8dee9;
+    font-size: 14px;
+    border-radius: 7px;
+}
+
+
 #trashButton {
     background-color: #2e3440;
     color: #2e3440;
+    border-radius: 7px;
     border: 10px;
     padding: 3px;
 }
@@ -18,6 +34,7 @@
 #menuButton {
     background-color: #2e3440;
     color: #2e3440;
+    border-radius: 7px;
     border: 10px;
     padding: 3px;
 }
@@ -31,7 +48,7 @@
 
 #menu {
     background-color: #2e3440;
-    border-radius: 5px;
+    border-radius: 7px;
     color: #FFFFFF
 }
 
@@ -83,7 +100,7 @@ QToolTip {
 }
 
 
-/* SidePy Styling */
+/* Panel Styling */
 #SidePanel {
     /* For the coloring you need to go to the config.ini file to change the side panel color. */
     color: #eeeeee;
@@ -169,7 +186,6 @@ QToolTip {
     padding: 10px;
 }
 
-
 #SideDate {
     background-color: white;
     border: 1px solid #ccc;
@@ -187,7 +203,7 @@ QToolTip {
 }
 
 #SideDate th {
-    padding: 10px;
+    padding: 5px;
     background-color: #f2f2f2;
     color: #333;
     font-weight: bold;
@@ -200,7 +216,6 @@ QToolTip {
 #SideDate td.current-day {
     background-color: #a4d4ae;
     color: white;
-    border-radius: 4px;
     font-weight: bold;
 }
 
@@ -209,6 +224,7 @@ QToolTip {
     color: #FFFFFF;
     font-size: 14px;
 }
+
 #SideMenu::item:selected {
     background-color: #9591cd;
     color: #df5b5b;

@@ -5,7 +5,7 @@ import configparser
 config = configparser.ConfigParser()
 config.read('config/config.ini')
 
-exit_buttons = config.get('Appearance', 'exitShortcut').split(', ')
+exit_buttons = config.get('Bar', 'exitShortcut').split(', ')
 
 
 class Exit:

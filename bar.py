@@ -1,8 +1,9 @@
+#Main bar file.
 import sys
 import psutil
 import time
 from PyQt5.QtGui import QColor, QPainter
-from PyQt5.QtWidgets import QApplication, QLabel, QHBoxLayout, QWidget, QToolTip, QPushButton
+from PyQt5.QtWidgets import QGraphicsBlurEffect, QApplication, QLabel, QHBoxLayout, QWidget, QToolTip, QPushButton, QVBoxLayout
 from PyQt5.QtCore import Qt, QTimer, QEvent, QPoint, QThread, pyqtSignal
 from PyQt5.QtSvg import QSvgWidget
 import configparser
@@ -23,11 +24,10 @@ class Taskpy(QWidget):
         super().__init__()
         self.loadConfig()
         self.initUI()
+        self.set_blur()
         self.open_apps = {}
 
-
-
-        subprocess.Popen(["python", "side_panel.py"])
+        subprocess.Popen(["python", "panel.py"])
         self.monitor_exit_thread = Thread(target=self.exit_function, daemon=True)
         self.monitor_exit_thread.start()
 
@@ -36,22 +36,24 @@ class Taskpy(QWidget):
         config = configparser.ConfigParser(interpolation = None)
         config.read('config/config.ini')
 
-        self.taskbar_height_warning = config.getboolean('Appearance', 'taskbarHeightWarning')
-        self.taskbar_height = config.getint('Appearance', 'taskbarHeight')
-        self.transparent = config.getboolean('Appearance', 'transparency')
-        if self.transparent == True:
+        self.taskbar_height_warning = config.getboolean('Bar', 'BarHeightWarning')
+        self.taskbar_height = config.getint('Bar', 'BarHeight')
+    
+        self.trash_layout: int = config.getint('Bar', 'trashLayout')
+        self.show_battery = config.getboolean('Bar', 'showBattery')
+        self.display_time_layout = config.get('Bar', 'timeLayout')
+
+        border_radius = config.get('Bar', 'BarBorderRadius')
+        self.border_radius1, self.border_radius2 = border_radius.split(', ')[0], border_radius.split(', ')[1]
+        if int(self.border_radius1) > 0 or int(self.border_radius2) > 0:
             self.setAttribute(Qt.WA_TranslucentBackground)
 
-        self.trash_layout: int = config.getint('Appearance', 'trashLayout')
-        self.show_battery = config.getboolean('Appearance', 'showBattery')
-        self.display_time_layout = config.get('Appearance', 'timeLayout')
-
-        border_radius = config.get('Appearance', 'taskpyBorderRadius')
-        self.border_radius1, self.border_radius2 = border_radius.split(', ')[0], border_radius.split(', ')[1]
-
-        self.colors = config.get('Appearance', 'taskpyColor')
+        self.colors = config.get('Bar', 'BarColor')
 
         self.color = self.colors.split(',')
+
+        self.heightGap = config.getint('Bar', 'HeightGap')
+        self.widthGap = config.getint('Bar', 'WidthGap')
 
     def taskbar_warning(self):
         if self.taskbar_height > 80:
@@ -104,11 +106,20 @@ class Taskpy(QWidget):
     def initUI(self):
         self.setWindowFlags(Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint | Qt.ToolTip)
         screen_width = QApplication.desktop().screenGeometry().width()
+
         taskbar_height = self.taskbar_height
-        self.setGeometry(0, QApplication.desktop().screenGeometry().height() - taskbar_height, screen_width, taskbar_height)
+        width_gap = self.widthGap
+        height_gap = self.heightGap
+
+        self.setGeometry(
+            width_gap,
+            QApplication.desktop().screenGeometry().height() - taskbar_height - height_gap,
+            screen_width - (2 * width_gap),
+            taskbar_height
+        )
+
+
         self.setFixedHeight(taskbar_height)
-        os.system('cls')
-        print("---------------YOU CAN NOW CLOSE THIS TERMINAL!!---------------")
 
         if self.taskbar_height_warning:
             self.taskbar_warning()
@@ -119,14 +130,16 @@ class Taskpy(QWidget):
             self.css = f.read()
         self.setStyleSheet(self.css)
 
-        main_layout = QHBoxLayout()
+        main_layout = QHBoxLayout(self)
+        # main_layout = QVBoxLayout()
+        main_layout.setContentsMargins(10, 10, 10, 10)
         self.setLayout(main_layout)
 
         trash_layout = QHBoxLayout()
 
         sys_info_layout = QHBoxLayout()
         self.sys_info_label = QLabel("Loading...")
-        self.sys_info_label.setObjectName('window')
+        self.sys_info_label.setObjectName('infoLabel')
         sys_info_layout.addWidget(self.sys_info_label)
 
         self.tooltip_timer = QTimer(self)
@@ -141,10 +154,10 @@ class Taskpy(QWidget):
 
         menu_layout = QHBoxLayout()
         self.menu_button(menu_layout)
-
+    
         time_layout = QHBoxLayout()
         self.time_label = QLabel("")
-        self.time_label.setObjectName('window')
+        self.time_label.setObjectName('timeLabel')
         time_layout.addWidget(self.time_label)
 
         battery_layout = QHBoxLayout()
@@ -194,12 +207,17 @@ class Taskpy(QWidget):
 
         self.sys_info_label.installEventFilter(self)
 
-    def paintEvent(self, event):
+    def set_blur(self):
+        self.eff = QGraphicsBlurEffect()
+        self.eff.setBlurRadius(5)
+        self.setGraphicsEffect(self.eff)
 
+
+    def paintEvent(self, event):
         painter = QPainter(self)
         painter.setRenderHint(QPainter.Antialiasing)
-
-        painter.setBrush(QColor(int(self.color[0]), int(self.color[1]), int(self.color[2])))
+        alpha = int(self.color[-1])
+        painter.setBrush(QColor(int(self.color[0]), int(self.color[1]), int(self.color[2]), alpha = alpha))
         painter.drawRoundedRect(self.rect(), int(self.border_radius1), int(self.border_radius2))
 
 
@@ -228,7 +246,7 @@ class Taskpy(QWidget):
         self.button.setObjectName('trashButton')
         self.button.setStyleSheet(self.css)
 
-        self.button.setToolTip("This button deletes all the temporary files which are stored in your system!")
+        self.button.setToolTip("Delets all temp files")
         self.button.clicked.connect(Utils.delete_temp_files)
 
         icon_layout = QHBoxLayout(self.button)
@@ -256,7 +274,6 @@ class Taskpy(QWidget):
         else:
             self.wifi_icon.load('svgs/wifi_off.svg')
             self.wifi_icon.setToolTip("No Wi-Fi connection")
-
 
 
     def show_tooltip_above_wifi(self, event):

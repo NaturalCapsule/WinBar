@@ -7,7 +7,7 @@ import speech_recognition as sr
 import asyncio
 from PyQt5.QtCore import Qt, QTimer, QPropertyAnimation, QThread, pyqtSignal, QTimer, QRect, QEasingCurve, QPoint, QSize
 from PyQt5.QtGui import QColor, QPainter, QRegion, QIcon, QPixmap, QBitmap
-from PyQt5.QtWidgets import QApplication, QWidget, QLabel, QPushButton, QMenu, QAction, QLineEdit
+from PyQt5.QtWidgets import QGraphicsOpacityEffect, QApplication, QWidget, QLabel, QPushButton, QMenu, QAction, QLineEdit
 from weather import Weather
 from windows_mods import Mods
 from configparser import ConfigParser
@@ -15,11 +15,11 @@ from exit import Exit
 from threading import Thread
 from message import Message
 from clipboard import ClipBoard
-from winrt.windows.media.control import GlobalSystemMediaTransportControlsSessionManager as MediaManager
-from winrt.windows.storage.streams import DataReader
 from rich import print
 from date import get_calendar_html
 from screenshot import take_screenshot, take_shot
+from media import *
+
 
 class VoiceCommandThread(QThread):
     command_signal = pyqtSignal(str)
@@ -62,7 +62,7 @@ class SidePanel(QWidget):
         
         self.panel_color = self.config.get('Panel', 'panelColor')
         self.colors = self.panel_color.split(',')
-        
+
 
         self.setWindowFlags(Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint | Qt.ToolTip)
         self.username = os.getlogin()
@@ -77,9 +77,9 @@ class SidePanel(QWidget):
         self.setAttribute(Qt.WA_TranslucentBackground)
 
         self.setMask(QRegion(self.rect(), QRegion.Rectangle))
-        
+
         self.setObjectName("SidePanel")
-        
+
         with open('config/style.css', 'r') as f:
             self.css = f.read()
         self.setStyleSheet(self.css)
@@ -87,6 +87,7 @@ class SidePanel(QWidget):
         self.voice_thread = VoiceCommandThread()
         self.voice_thread.command_signal.connect(self.execute_command)
         self.voice_thread.start()
+
 
         self.timer = QTimer(self)
         self.timer.timeout.connect(self.check_keys)
@@ -134,7 +135,7 @@ class SidePanel(QWidget):
 
 
         self.save_timer = QTimer(self)
-        self.save_timer.timeout.connect(self.get_image)
+        self.save_timer.timeout.connect(get_image)
         self.save_timer.start(100)
 
         self.test_timer = QTimer(self)
@@ -145,9 +146,10 @@ class SidePanel(QWidget):
         self.temp_timer.timeout.connect(self.update_weather)
         self.temp_timer.start(10000)
 
-        self.title = self.c_session_info()
+        self.title = c_session_info()
 
         self.clipboard = ClipBoard()
+
 
         self.setup_side_panel()
         self.search_bar()
@@ -160,175 +162,33 @@ class SidePanel(QWidget):
         self.monitor_exit_thread = Thread(target=self.exit_function, daemon=True)
         self.monitor_exit_thread.start()
 
-
-    def play_pause(self):
-        async def get_session():
-            try:
-                session_manager = await MediaManager.request_async()
-                current_session = session_manager.get_current_session()
-                return await current_session.try_toggle_play_pause_async()
-            except AttributeError:
-                pass
-        
-        pause_play = asyncio.run(get_session())
-        return pause_play
-
-    def c_session_info(self):
-        async def get_info():
-            session_manager = await MediaManager.request_async()
-            current_session = session_manager.get_current_session()
-
-            try:
-                info = await current_session.try_get_media_properties_async()
-                title = info.title
-                artist = info.artist
-                return f"Now Playing: {title} by {artist}"
-
-            except Exception as e:
-                return "No active media session to control."
-
-        session = asyncio.run(get_info())
-        return session
-
-
-    async def control_media(self):
-        session_manager = await MediaManager.request_async()
-        current_session = session_manager.get_current_session()
-
-        if not current_session:
-            return "No active media session to control."
-
-        try:
-            info = await current_session.try_get_media_properties_async()
-            thumbnail = info.thumbnail
-
-
-            if thumbnail:
-                await self.save_thumbnail(thumbnail, "thumbnail.jpg")
-
-        except Exception as e:
-            return ""
-
-    async def save_thumbnail(self, thumbnail, filename, directory=fr"C:\Users\{username}\AppData\Local\Temp"):
-        try:
-            if directory:
-                os.makedirs(directory, exist_ok=True)
-                filepath = os.path.join(directory, filename)
-            else:
-                filepath = filename
-
-            stream = await thumbnail.open_read_async()
-
-            input_stream = stream.get_input_stream_at(0)
-            data_reader = DataReader(input_stream)
-            data_reader.load_async(stream.size)
-
-            data = data_reader.read_bytes(stream.size)
-            data_reader.detach_stream()
-
-            with open(filepath, "wb") as file:
-                file.write(bytes(data))
-
-        except Exception as e:
-            return ""
-
-
-    async def get_media_session(self):
-        session_manager = await MediaManager.request_async()
-        session = session_manager.get_current_session()
-        
-        if not session:
-            print("No media session available.")
-
-        return session
-
-    async def fast_forward(self):
-        session = await self.get_media_session()
-        if not session:
-            print("⚠️ No active media session")
-            return
-
-        try:
-            timeline = session.get_timeline_properties()
-            
-            current_ticks = timeline.position.duration
-            max_ticks = timeline.max_seek_time.duration
-
-            if max_ticks <= 0:
-                print("❌ Seeking not supported")
-                return
-
-            success = await session.try_change_playback_position_async(current_ticks + 1e+8)
-
-            
-            if success:
-                print("⏩ Fast forwarded 10s")
-            else:
-                print("❌ Fast forward failed (app rejected the request)")
-            
-        except Exception as e:
-            print(f"❌ Error: {str(e)}")
-        # os.system('cls')
-
-
-
-    async def rewind(self):
-        session = await self.get_media_session()
-        if not session:
-            print("⚠️ No active media session")
-            return
-
-        try:
-            timeline = session.get_timeline_properties()
-            
-            current_ticks = timeline.position.duration
-            max_ticks = timeline.max_seek_time.duration
-
-            if max_ticks <= 0:
-                print("❌ Seeking not supported")
-                return
-
-            success = await session.try_change_playback_position_async(current_ticks - 1e+8)
-
-            
-            if success:
-                print("⏩ Fast forwarded 10s")
-            else:
-                print("❌ Fast forward failed (app rejected the request)")
-            
-        except Exception as e:
-            print(f"❌ Error: {str(e)}")
-        # os.system('cls')
-
-
+    # def set_opacity(self):
+    #     self.eff = QGraphicsOpacityEffect()
+    #     # self.eff.setOpacity(float(self.opacity)) 
+    #     self.eff.
+    #     self.setGraphicsEffect(self.eff)
 
     def rewind_action(self):
         async def rewind_action_():
-            await self.rewind()
+            await rewind()
 
         return asyncio.run(rewind_action_())
     
     def fast_forward_action(self):
         async def fast_forward_action_():
-            await self.fast_forward()
+            await fast_forward()
 
         return asyncio.run(fast_forward_action_())
 
-    def get_image(self):
-        if self.loop:
-            asyncio.run_coroutine_threadsafe(self.control_media(), self.loop)
-        else:
-            print("Loop not available yet.")
-
     def update_media(self):
-        title = self.c_session_info()
+        title = c_session_info()
         self.media_label.setText(title)
 
     def paintEvent(self, event):
         painter = QPainter(self)
         painter.setRenderHint(QPainter.Antialiasing)
 
-        painter.setBrush(QColor(int(self.colors[0]), int(self.colors[1]), int(self.colors[2])))
+        painter.setBrush(QColor(int(self.colors[0]), int(self.colors[1]), int(self.colors[2]), alpha = int(self.colors[-1])))
         painter.drawRoundedRect(self.rect(), int(self.panel_rad1), int(self.panel_rad2))
 
     def animate_panel(self, show):
@@ -391,24 +251,29 @@ class SidePanel(QWidget):
         self.clipboard_button.setIcon(QIcon("svgs/clipboard.svg"))
         self.clipboard_button.clicked.connect(self.clip_board)
         self.clipboard_button.setObjectName("ClipButton")
+        self.clipboard_button.setStyleSheet(self.css)
 
         self.mini_game = QPushButton(self)
         self.mini_game.setIcon(QIcon("svgs/rocket.svg"))
         self.mini_game.clicked.connect(self.run_miniGame)
         self.mini_game.setObjectName("MiniGameButton")
+        self.mini_game.setStyleSheet(self.css)
 
         self.menu_button = QPushButton("Performance", self)
         self.menu_button.clicked.connect(self.menu)
         self.menu_button.setObjectName("PerformanceButton")
+        self.menu_button.setStyleSheet(self.css)
 
         self.close_button = QPushButton("Close Panel", self)
         self.close_button.clicked.connect(self.closePanel_button)
         self.close_button.setObjectName("CloseButton")
+        self.close_button.setStyleSheet(self.css)
 
         self.forward_button = QPushButton("", self)
         self.forward_button.setIcon(QIcon('svgs/fast-forward.svg'))
         self.forward_button.clicked.connect(self.fast_forward_action)
         self.forward_button.setObjectName('forwardButton')
+        self.forward_button.setStyleSheet(self.css)
         self.forward_button.setFixedSize(self.media_icon1, self.media_icon2)
         self.forward_button.setIconSize(QSize(self.media_icon1, self.media_icon2))
 
@@ -416,6 +281,7 @@ class SidePanel(QWidget):
         self.rewind_button.setIcon(QIcon('svgs/rewind.svg'))
         self.rewind_button.clicked.connect(self.rewind_action)
         self.rewind_button.setObjectName('rewindButton')
+        self.rewind_button.setStyleSheet(self.css)
         self.rewind_button.setFixedSize(self.media_icon1, self.media_icon2)
         self.rewind_button.setIconSize(QSize(self.media_icon1, self.media_icon2))
 
@@ -429,11 +295,10 @@ class SidePanel(QWidget):
             self.media_button.setIcon(QIcon("svgs/pause.svg"))
         self.is_playing = not self.is_playing
 
-
-        self.play_pause()
+        play_pause()
 
     def check_media_session(self):
-        current_session = self.c_session_info()
+        current_session = c_session_info()
         
         if current_session == "No active media session to control.":
             self.media_button.setIcon(QIcon("svgs/play.svg"))
@@ -465,7 +330,7 @@ class SidePanel(QWidget):
 
         pixmap.setMask(mask.createHeuristicMask())
 
-        current_session = self.c_session_info()
+        current_session = c_session_info()
 
         if current_session != "No active media session to control.":
             self.media_image.setPixmap(pixmap)
@@ -638,7 +503,6 @@ class SidePanel(QWidget):
             self.clipboard.animate_app(show = False)
 
         elif "take a screenshot" in command:
-            # subprocess.run(["python", "screenshot.py"])
             take_shot()
 
 
@@ -663,20 +527,14 @@ class SidePanel(QWidget):
             self.animate_panel(show=False)
 
 
-def start_asyncio_loop(panel):
-    loop = asyncio.new_event_loop()
-    asyncio.set_event_loop(loop)
-    panel.loop = loop
-    loop.run_forever()
-
 def run_loop():
     app = QApplication([])
 
-    side = SidePanel()
+    _side = SidePanel()
     
-    Thread(target=start_asyncio_loop, args=(side,), daemon=True).start()
+    Thread(target=start_asyncio_loop, args=(_side,), daemon=True).start()
 
-    side.show()
+    _side.show()
     app.exec_()
 
 run_loop()
