@@ -18,13 +18,15 @@ from exit import Exit
 from threading import Thread
 from menu import Menu
 import subprocess
+from layouts import *
+from json_widget import load_widgets_from_json
 
 class Taskpy(QWidget):
     def __init__(self):
         super().__init__()
         self.loadConfig()
         self.initUI()
-        self.set_blur()
+        load_widgets_from_json(self, 'widget.json')
         self.open_apps = {}
 
         subprocess.Popen(["python", "panel.py"])
@@ -60,40 +62,6 @@ class Taskpy(QWidget):
             Message.messagebox(self)
             sys.exit()
 
-    def layout1(self, main_layout, sys_info_layout, trash_layout, dock_layout, time_layout, wifi_layout, battery_layout, menu_layout):
-        main_layout.addLayout(sys_info_layout)
-        main_layout.addLayout(trash_layout)
-        main_layout.addLayout(menu_layout)
-        main_layout.addStretch()
-        main_layout.addLayout(dock_layout)
-        main_layout.addStretch()
-        main_layout.addLayout(wifi_layout)
-        if self.show_battery:
-            main_layout.addLayout(battery_layout)
-        main_layout.addLayout(time_layout)
-
-    def layout2(self, main_layout, sys_info_layout, trash_layout, dock_layout, time_layout, wifi_layout, battery_layout, menu_layout):
-        main_layout.addLayout(sys_info_layout)
-        main_layout.addLayout(menu_layout)
-        main_layout.addStretch()
-        main_layout.addLayout(dock_layout)
-        main_layout.addStretch()
-        main_layout.addLayout(trash_layout)
-        main_layout.addLayout(wifi_layout)
-        if self.show_battery:
-            main_layout.addLayout(battery_layout)
-        main_layout.addLayout(time_layout)
-
-    def layout3(self, main_layout, sys_info_layout, dock_layout, time_layout, wifi_layout, battery_layout, menu_layout):
-        main_layout.addLayout(sys_info_layout)
-        main_layout.addLayout(menu_layout)
-        main_layout.addStretch()
-        main_layout.addLayout(dock_layout)
-        main_layout.addStretch()
-        main_layout.addLayout(wifi_layout)
-        if self.show_battery:
-            main_layout.addLayout(battery_layout)
-        main_layout.addLayout(time_layout)
 
     def exit_function(self):
         while True:
@@ -117,100 +85,89 @@ class Taskpy(QWidget):
             screen_width - (2 * width_gap),
             taskbar_height
         )
-
-
+        
         self.setFixedHeight(taskbar_height)
-
+        
         if self.taskbar_height_warning:
             self.taskbar_warning()
-
+        
         self.setObjectName('window')
 
         with open('config/style.css', 'r') as f:
             self.css = f.read()
         self.setStyleSheet(self.css)
 
-        main_layout = QHBoxLayout(self)
-        # main_layout = QVBoxLayout()
-        main_layout.setContentsMargins(10, 10, 10, 10)
-        self.setLayout(main_layout)
+        self.main_layout = QHBoxLayout(self)
+        self.setLayout(self.main_layout)
 
+        
         trash_layout = QHBoxLayout()
-
         sys_info_layout = QHBoxLayout()
         self.sys_info_label = QLabel("Loading...")
         self.sys_info_label.setObjectName('infoLabel')
         sys_info_layout.addWidget(self.sys_info_label)
-
+        
         self.tooltip_timer = QTimer(self)
         self.tooltip_timer.timeout.connect(self.updateTooltip)
         self.tooltip_timer.setInterval(1000)
-
+        
         dock_layout = QHBoxLayout()
-
         docks = DockApp(dock_layout)
-
         self.trash_button(trash_layout)
-
+        
         menu_layout = QHBoxLayout()
         self.menu_button(menu_layout)
-    
+        
         time_layout = QHBoxLayout()
         self.time_label = QLabel("")
         self.time_label.setObjectName('timeLabel')
         time_layout.addWidget(self.time_label)
-
+        
         battery_layout = QHBoxLayout()
         self.battery_icon = QSvgWidget()
         self.battery_icon.setFixedSize(20, 20)
         battery_layout.addWidget(self.battery_icon)
-
+        
         wifi_layout = QHBoxLayout()
         self.wifi_widget = QWidget()
         wifi_layout.addWidget(self.wifi_widget)
         self.wifi_icon = QSvgWidget()
         self.wifi_icon.setFixedSize(20, 20)
         wifi_layout.addWidget(self.wifi_icon)
-
+        
         if self.trash_layout == 0:
-            self.layout3(main_layout, sys_info_layout, dock_layout, time_layout, wifi_layout, battery_layout, menu_layout)
+            layout3(self.main_layout, sys_info_layout, dock_layout, time_layout, wifi_layout, battery_layout, menu_layout, self.show_battery)
         elif self.trash_layout == 2:
-            self.layout2(main_layout, sys_info_layout, trash_layout, dock_layout, time_layout, wifi_layout, battery_layout, menu_layout)
+            layout2(self.main_layout, sys_info_layout, trash_layout, dock_layout, time_layout, wifi_layout, battery_layout, menu_layout, self.show_battery)
         else:
-            self.layout1(main_layout, sys_info_layout, trash_layout, dock_layout, time_layout, wifi_layout, battery_layout, menu_layout)
-
+            layout1(self.main_layout, sys_info_layout, trash_layout, dock_layout, time_layout, wifi_layout, battery_layout, menu_layout, self.show_battery)
+        
         self.updateSystemInfo()
         timer = QTimer(self)
         timer.timeout.connect(self.updateSystemInfo)
         timer.start(1000)
-
-
+        
         self.updateTime()
         time_timer = QTimer(self)
         time_timer.timeout.connect(self.updateTime)
         time_timer.start(1000)
-
+        
         self.updateWifiLabel()
         wifi_timer = QTimer(self)
         wifi_timer.timeout.connect(self.updateWifiLabel)
         self.wifi_icon.enterEvent = self.show_tooltip_above_wifi
         self.wifi_icon.leaveEvent = self.hide_tooltip
         wifi_timer.start(1000)
-
-
+        
         self.updateBattery()
         update_battery = QTimer(self)
         update_battery.timeout.connect(self.updateBattery)
         self.battery_icon.enterEvent = self.show_tooltip_above_battery
         self.battery_icon.leaveEvent = self.hide_tooltip
         update_battery.start(1000)
-
+        
         self.sys_info_label.installEventFilter(self)
 
-    def set_blur(self):
-        self.eff = QGraphicsBlurEffect()
-        self.eff.setBlurRadius(5)
-        self.setGraphicsEffect(self.eff)
 
 
     def paintEvent(self, event):
@@ -354,6 +311,9 @@ class Taskpy(QWidget):
 
         elif battery != -1 and battery < 10:
             self.battery_icon.load('svgs/battery-low.svg')
+
+        elif battery == -1:
+            self.battery_icon.load('svgs/battery-error.svg')
 
         self.battery_icon.setToolTip(f"Battery Level: {battery}%")
 

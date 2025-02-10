@@ -1,0 +1,34 @@
+// config it like shown below
+// test code, may not work properly!
+
+// [
+//     {
+//         "type": "label",
+//         "name": "label1",
+//         "text": "CPU Usage: 45%"
+//     },
+//     {
+//         "type": "button",
+//         "name": "button3",
+//         "text": "Refresh",
+//         "action": "C:/Users/sxxve/AppData/Roaming/Telegram Desktop/Telegram.exe"
+//     },
+//     {
+//         "type": "button",
+//         "name": "button2",
+//         "text": "do some shit",
+//         "action": "explorer"
+//     },
+//     {
+//         "type": "button",
+//         "name": "button1",
+//         "text": "didk",
+//         "action": "start firefox"
+//     },
+//     {
+//         "type": "label",
+//         "name": "label2",
+//         "text": "fuck you"
+//     }
+// ]
+

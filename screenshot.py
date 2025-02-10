@@ -1,7 +1,6 @@
 import pyautogui
 import os
 import keyboard
-import subprocess
 
 
 def take_shot():
