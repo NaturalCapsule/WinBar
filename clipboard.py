@@ -1,7 +1,7 @@
 import sys
 import time
 import pyperclip
-from PyQt5.QtCore import QMutex, QMutexLocker, Qt, QThread, pyqtSignal, QPoint, QRect, QPropertyAnimation, QEasingCurve, QTimer
+from PyQt5.QtCore import QMutex, Qt, QThread, pyqtSignal, QPoint, QRect, QPropertyAnimation, QEasingCurve, QTimer
 from PyQt5.QtWidgets import QWidget, QVBoxLayout, QListWidget, QApplication, QScrollBar, QPushButton
 from PyQt5.QtGui import QIcon
 from configparser import ConfigParser
@@ -35,9 +35,9 @@ class CheckThread(QThread):
                     current_content = pyperclip.paste()
                     if current_content != self.last_content:
                         self.last_content = current_content
-                        f.write(current_content + '\n')  # This handles file updates
+                        f.write(current_content + '\n')
                         f.flush()
-                        self.command_signal.emit(current_content)  # Send new content to update_list
+                        self.command_signal.emit(current_content)
                     time.sleep(0.5)
 
         else:
@@ -159,55 +159,19 @@ class ClipBoard(QWidget):
         with open(file_path, "w") as f:
             self.delete_text = True
 
-    # def update_list(self, content):
-        # use_file = get_info
-
-        # self.qlist.addScrollBarWidget(self.scroll_bar, Qt.AlignLeft)
-
-        # file_content = []
-
-        # if use_file:
-        #     try:
-        #         with open(file_path, "r") as f:
-        #             new_ = f.read()
-        #             file_content = new_.split("\n")
-
-        #             for new_text in file_content:
-        #                 if new_text.strip():
-        #                     self.qlist.addItem(new_text.strip())
-        #     except FileNotFoundError:
-        #         print("test.txt file not found, starting with an empty list.")
-        #     except Exception as e:
-        #         print(f"Error reading file: {e}")
-
-        # if content.strip() and content not in file_content:
-        #     self.qlist.addItem(content.strip())
-            
-        #     try:
-        #         with open(file_path, "a") as f:
-        #             f.write(content.strip() + "\n")
-        #     except Exception as e:
-        #         print(f"Error writing to file: {e}")
-
-        # if self.delete_text:
-        #     self.qlist.clear()
-
-        # self.qlist.scrollToBottom()
 
     def update_list(self, content):
         use_file = get_info
         self.qlist.addScrollBarWidget(self.scroll_bar, Qt.AlignLeft)
 
-        # Initialize a list to keep track of content already in the QListWidget
-        file_content = set()  # Using a set to make the lookup faster
+        file_content = set()
 
         if use_file:
             try:
                 with open(file_path, "r") as f:
                     new_ = f.read()
-                    file_content = set(new_.split("\n"))  # Convert file content to a set for faster lookup
+                    file_content = set(new_.split("\n"))
 
-                    # Add items from the file to the QListWidget if not already added
                     for new_text in file_content:
                         stripped_text = new_text.strip()
                         if stripped_text and stripped_text not in [self.qlist.item(i).text() for i in range(self.qlist.count())]:
@@ -217,7 +181,6 @@ class ClipBoard(QWidget):
             except Exception as e:
                 print(f"Error reading file: {e}")
 
-        # Ensure content is added only if it's not empty and not already in the file or list
         stripped_content = content.strip()
         if stripped_content and stripped_content not in file_content and stripped_content not in [self.qlist.item(i).text() for i in range(self.qlist.count())]:
             self.qlist.addItem(stripped_content)
@@ -228,11 +191,9 @@ class ClipBoard(QWidget):
             except Exception as e:
                 print(f"Error writing to file: {e}")
 
-        # If delete_text flag is set, clear the list
         if self.delete_text:
             self.qlist.clear()
 
-        # Scroll to the bottom to show the most recent entry
         self.qlist.scrollToBottom()
 
     def clear_history(self):

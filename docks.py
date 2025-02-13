@@ -10,30 +10,29 @@ import pyuac
 username = os.getlogin()
 
 class DockApp:
-    def __init__(self, dock_layout):
-        # if not pyuac.isUserAdmin():
-        #     elevate.elevate(show_console = False)
-        #     return
-        self.dock_layout = dock_layout
+    def __init__(self):
+        if not pyuac.isUserAdmin():
+            elevate.elevate(show_console = False)
+            return
+        self.dock_buttons = []
         self.loadAppsFromConfig()
         self.open_apps = {}
 
-    def addDockIcon(self, app_path, icon_path, layout):
 
-        button = QPushButton()
-        button.setObjectName('dock')
-        button.setIcon(QIcon(icon_path))
+    def addDockIcon(self, app_path, icon_path):
+        dock_button = QPushButton()
+        dock_button.setObjectName('dock')
+        dock_button.setIcon(QIcon(icon_path))
 
         with open('config/style.css', 'r') as f:
             self.css = f.read()
-        button.setStyleSheet(self.css)
+        dock_button.setStyleSheet(self.css)
         app_name = os.path.basename(app_path).replace(".exe", "")
 
-        button.setProperty('app_name', app_name)
-        button.setProperty('app_pid', None)
-        button.clicked.connect(lambda: self.launchApp(app_name=app_name, app_path=app_path, button=button))
-        layout.addSpacing(20)
-        layout.addWidget(button)
+        dock_button.setProperty('app_name', app_name)
+        dock_button.setProperty('app_pid', None)
+        dock_button.clicked.connect(lambda: self.launchApp(app_name=app_name, app_path=app_path, button=dock_button))
+        self.dock_buttons.append(dock_button)
 
     def loadAppsFromConfig(self):
         config = ConfigParser()
@@ -44,7 +43,7 @@ class DockApp:
                 try:
                     app_path, icon_path = value.split(', ')
                     app_path = app_path.replace(f"{username}", os.getlogin())
-                    self.addDockIcon(app_path, icon_path, self.dock_layout)
+                    self.addDockIcon(app_path, icon_path)
                 except ValueError:
                     print(f"Invalid entry for {key} in config.ini. Expected format: app_path, icon_path")
 

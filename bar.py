@@ -3,11 +3,10 @@ import sys
 import psutil
 import time
 from PyQt5.QtGui import QColor, QPainter
-from PyQt5.QtWidgets import QGraphicsBlurEffect, QApplication, QLabel, QHBoxLayout, QWidget, QToolTip, QPushButton, QVBoxLayout
-from PyQt5.QtCore import Qt, QTimer, QEvent, QPoint, QThread, pyqtSignal
+from PyQt5.QtWidgets import QApplication, QHBoxLayout, QLabel, QWidget, QToolTip, QPushButton
+from PyQt5.QtCore import Qt, QTimer, QEvent, QPoint
 from PyQt5.QtSvg import QSvgWidget
 import configparser
-import os
 from docks import DockApp
 from wifi import ConnectedToWifi
 from datetime import date
@@ -18,21 +17,21 @@ from exit import Exit
 from threading import Thread
 from menu import Menu
 import subprocess
-from layouts import *
-from json_widget import load_widgets_from_json
+from functools import partial
+import json
+from active_window import ScrollingLabel
 
-class Taskpy(QWidget):
+class Bar(QWidget):
     def __init__(self):
         super().__init__()
         self.loadConfig()
         self.initUI()
-        load_widgets_from_json(self, 'widget.json')
+        self.load_widgets_from_json('config/config.json', self.left_layout, self.right_layout, self.middle_layout)
         self.open_apps = {}
 
         subprocess.Popen(["python", "panel.py"])
         self.monitor_exit_thread = Thread(target=self.exit_function, daemon=True)
         self.monitor_exit_thread.start()
-
 
     def loadConfig(self):
         config = configparser.ConfigParser(interpolation = None)
@@ -41,8 +40,7 @@ class Taskpy(QWidget):
         self.taskbar_height_warning = config.getboolean('Bar', 'BarHeightWarning')
         self.taskbar_height = config.getint('Bar', 'BarHeight')
     
-        self.trash_layout: int = config.getint('Bar', 'trashLayout')
-        self.show_battery = config.getboolean('Bar', 'showBattery')
+        self.show_battery: bool = config.getboolean('Bar', 'showBattery')
         self.display_time_layout = config.get('Bar', 'timeLayout')
 
         border_radius = config.get('Bar', 'BarBorderRadius')
@@ -87,7 +85,12 @@ class Taskpy(QWidget):
         )
         
         self.setFixedHeight(taskbar_height)
-        
+
+        self.isEnabled_ = False
+        self.trash_enabled = False
+        self.launcher_enabled = False
+
+
         if self.taskbar_height_warning:
             self.taskbar_warning()
         
@@ -100,48 +103,49 @@ class Taskpy(QWidget):
         self.main_layout = QHBoxLayout(self)
         self.setLayout(self.main_layout)
 
-        
-        trash_layout = QHBoxLayout()
-        sys_info_layout = QHBoxLayout()
+        self.right_layout = QHBoxLayout()
+        self.middle_layout = QHBoxLayout()
+        self.left_layout = QHBoxLayout()
+
+        self.main_layout.addLayout(self.left_layout)
+        self.main_layout.addStretch()
+        self.main_layout.addLayout(self.middle_layout)
+        self.main_layout.addStretch()
+        self.main_layout.addLayout(self.right_layout)
+
+        self.setLayout(self.main_layout)
+
         self.sys_info_label = QLabel("Loading...")
         self.sys_info_label.setObjectName('infoLabel')
-        sys_info_layout.addWidget(self.sys_info_label)
+        self.sys_info_label.setStyleSheet(self.css)
+
         
         self.tooltip_timer = QTimer(self)
         self.tooltip_timer.timeout.connect(self.updateTooltip)
         self.tooltip_timer.setInterval(1000)
         
-        dock_layout = QHBoxLayout()
-        docks = DockApp(dock_layout)
-        self.trash_button(trash_layout)
-        
-        menu_layout = QHBoxLayout()
-        self.menu_button(menu_layout)
-        
-        time_layout = QHBoxLayout()
+        self.menu_button()
+        self.trash_button()
+        self.launcher_button()
+
         self.time_label = QLabel("")
         self.time_label.setObjectName('timeLabel')
-        time_layout.addWidget(self.time_label)
-        
-        battery_layout = QHBoxLayout()
+        self.time_label.setStyleSheet(self.css)
+
+
+        self.get_window = ScrollingLabel(self)
+
         self.battery_icon = QSvgWidget()
         self.battery_icon.setFixedSize(20, 20)
-        battery_layout.addWidget(self.battery_icon)
         
-        wifi_layout = QHBoxLayout()
-        self.wifi_widget = QWidget()
-        wifi_layout.addWidget(self.wifi_widget)
+        self.wifi_ico = QLabel()
+        self.wifi_ico.setObjectName('WifiLabel')
+        self.offline_icon = ""
+        self.online_icon = ""
         self.wifi_icon = QSvgWidget()
         self.wifi_icon.setFixedSize(20, 20)
-        wifi_layout.addWidget(self.wifi_icon)
-        
-        if self.trash_layout == 0:
-            layout3(self.main_layout, sys_info_layout, dock_layout, time_layout, wifi_layout, battery_layout, menu_layout, self.show_battery)
-        elif self.trash_layout == 2:
-            layout2(self.main_layout, sys_info_layout, trash_layout, dock_layout, time_layout, wifi_layout, battery_layout, menu_layout, self.show_battery)
-        else:
-            layout1(self.main_layout, sys_info_layout, trash_layout, dock_layout, time_layout, wifi_layout, battery_layout, menu_layout, self.show_battery)
-        
+
+
         self.updateSystemInfo()
         timer = QTimer(self)
         timer.timeout.connect(self.updateSystemInfo)
@@ -166,8 +170,8 @@ class Taskpy(QWidget):
         self.battery_icon.leaveEvent = self.hide_tooltip
         update_battery.start(1000)
         
-        self.sys_info_label.installEventFilter(self)
 
+        self.sys_info_label.installEventFilter(self)
 
 
     def paintEvent(self, event):
@@ -178,60 +182,188 @@ class Taskpy(QWidget):
         painter.drawRoundedRect(self.rect(), int(self.border_radius1), int(self.border_radius2))
 
 
-    def menu_button(self, layout):
+    def menu_button(self):
+        self.custom_menu = QPushButton("")
+        self.custom_menu.setObjectName('menuButton')
+        self.custom_menu.setStyleSheet(self.css)
+        self.menu_custom = Menu(self.custom_menu)
+        self.custom_menu.clicked.connect(self.menu_custom.open_menu)
+
         self.menu = QPushButton("")
         self.menu.setObjectName('menuButton')
         self.menu.setStyleSheet(self.css)
-        
         self.menu_ = Menu(self.menu)
-        
         self.menu.clicked.connect(self.menu_.open_menu)
-        
-        icon_layout = QHBoxLayout(self.menu)
-        icon_layout.setContentsMargins(5, 0, 5, 0)
-
-        svg_icon = QSvgWidget()
-        svg_icon.load("svgs/menu.svg")
-        svg_icon.setFixedSize(20, 20)
-        icon_layout.addWidget(svg_icon)
-
-        layout.addWidget(self.menu)
 
 
-    def trash_button(self, layout):
-        self.button = QPushButton()
-        self.button.setObjectName('trashButton')
-        self.button.setStyleSheet(self.css)
+        if not self.isEnabled_:
+            icon_layout = QHBoxLayout(self.menu)
+            icon_layout.setContentsMargins(5, 0, 5, 0)
 
-        self.button.setToolTip("Delets all temp files")
-        self.button.clicked.connect(Utils.delete_temp_files)
+            svg_icon = QSvgWidget()
+            svg_icon.load("svgs/menu.svg")
+            svg_icon.setFixedSize(20, 20)
+            icon_layout.addWidget(svg_icon)
 
-        icon_layout = QHBoxLayout(self.button)
-        icon_layout.setContentsMargins(5, 0, 5, 0)
+    def trash_button(self):
+        self.custom_trash = QPushButton()
+        self.custom_trash.setObjectName('trashButton')
+        self.custom_trash.setStyleSheet(self.css)
+        self.custom_trash.setToolTip("Delets all temp files")
+        self.custom_trash.clicked.connect(Utils.delete_temp_files)
+        self.custom_trash.enterEvent = self.show_tooltip_above_trash
+        self.custom_trash.leaveEvent = self.hide_tooltip
 
-        svg_icon = QSvgWidget()
-        svg_icon.load("svgs/trash.svg")
-        svg_icon.setFixedSize(20, 20)
-        icon_layout.addWidget(svg_icon)
+
+        self.trash_button_ = QPushButton()
+        self.trash_button_.setObjectName('trashButton')
+        self.trash_button_.setStyleSheet(self.css)
+        self.trash_button_.setToolTip("Delets all temp files")
+        self.trash_button_.clicked.connect(Utils.delete_temp_files)
+        self.trash_button_.enterEvent = self.show_tooltip_above_trash
+        self.trash_button_.leaveEvent = self.hide_tooltip
 
 
-        layout.addWidget(self.button)
+        if not self.trash_enabled:
+            icon_layout = QHBoxLayout(self.trash_button_)
+            icon_layout.setContentsMargins(5, 0, 5, 0)
 
-        self.button.enterEvent = self.show_tooltip_above_trash
-        self.button.leaveEvent = self.hide_tooltip
+            svg_icon = QSvgWidget()
+            svg_icon.load("svgs/trash.svg")
+            svg_icon.setFixedSize(20, 20)
+            icon_layout.addWidget(svg_icon)
+
+    def launcher_button(self):
+        self.custom_launcher = QPushButton()
+        self.custom_launcher.setObjectName('launcherButton')
+        self.custom_launcher.setStyleSheet(self.css)
+        self.custom_launcher.clicked.connect(self.launch_laucher)
+
+        self.launcher_button_ = QPushButton()
+        self.launcher_button_.setObjectName('launcherButton')
+        self.launcher_button_.setStyleSheet(self.css)
+        self.launcher_button_.clicked.connect(self.launch_laucher)
+
+
+        if not self.launcher_enabled:
+            icon_layout = QHBoxLayout(self.launcher_button_)
+            icon_layout.setContentsMargins(5, 0, 5, 0)
+
+            svg_icon = QSvgWidget()
+            svg_icon.load("svgs/launcher.svg")
+            svg_icon.setFixedSize(20, 20)
+            icon_layout.addWidget(svg_icon)        
+
+    def launch_laucher(self):
+        subprocess.run(['python', 'app_launcher.py'])
+
+    def cmd(self, command):
+        subprocess.Popen(command, shell=True)
+
+    def load_widgets_from_json(self, file_path, left_layout, right_layout, middle_layout):
+        try:
+            with open(file_path, "r") as file:
+                widgets = json.load(file)
+
+                for self.widget in widgets['pre-made']:
+                    layout_target = self.widget.get("layout", "SELECT A LAYOUT")
+                    widget_item = None
+
+
+                    if "battery" in self.widget:
+                        widget_item = self.battery_icon
+
+                    elif "wifi" in self.widget:
+                        wifi_con = self.wifi_icon
+                        if self.widget.get("onlineIcon") and self.widget.get("offlineIcon"):
+                            self.offline_icon = self.widget["offlineIcon"]
+                            self.online_icon = self.widget["onlineIcon"]
+                            wifi_con = self.wifi_icon
+                        widget_item = wifi_con
+
+                    elif "time" in self.widget:
+                        widget_item = self.time_label
+
+                    elif "window title" in self.widget:
+                        widget_item = self.get_window
+
+                    elif "system info" in self.widget:
+                        widget_item = self.sys_info_label
+
+                    elif "menu" in self.widget:
+                        menu_ico = self.menu
+                        if self.widget.get("icon"):
+                            self.custom_menu.setText(self.widget["icon"])
+                            self.isEnabled_ = True
+                            menu_ico = self.custom_menu
+                        widget_item = menu_ico
+
+                    elif "trash" in self.widget:
+                        trash_ico = self.trash_button_
+                        if self.widget.get("icon"):
+                            self.custom_trash.setText(self.widget["icon"])
+                            self.trash_enabled = True
+                            trash_ico = self.custom_trash
+                        widget_item = trash_ico
+
+                    elif "launcher" in self.widget:
+                        launcher_ico = self.launcher_button_
+                        if self.widget.get("icon"):
+                            self.custom_launcher.setText(self.widget["icon"])
+                            self.launcher_enabled = True
+                            launcher_ico = self.custom_launcher
+                        widget_item = launcher_ico
+
+                    elif "type" in self.widget:
+                        if self.widget["type"] == "label":
+                            widget_item = QLabel(self.widget["text"])
+                            widget_item.setObjectName(self.widget["name"])
+                        elif self.widget["type"] == "button":
+                            widget_item = QPushButton(self.widget["text"])
+                            widget_item.setObjectName(self.widget["name"])
+                            if "action" in self.widget:
+                                widget_item.clicked.connect(partial(self.cmd, self.widget["action"]))
+
+                    if widget_item:
+                        if layout_target == "left":
+                            left_layout.addWidget(widget_item)
+                        elif layout_target == "right":
+                            right_layout.addWidget(widget_item)
+                        elif layout_target == "middle":
+                            middle_layout.addWidget(widget_item)
+
+            self.docks = DockApp().dock_buttons
+
+            for widget in widgets['pre-made']:
+                if widget.get('docks') == "show docks":
+                    for dock_button in self.docks:
+                        # dock_button.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Preferred)  # Prevent width expansion
+                        # dock_button.setMaximumWidth(100)
+                        layout_target = widget['layout']
+                        if layout_target == 'left':
+                            left_layout.addWidget(dock_button)
+                        elif layout_target == 'right':
+                            right_layout.addWidget(dock_button)
+                        elif layout_target == 'middle':
+                            middle_layout.addSpacing(20)
+                            middle_layout.addWidget(dock_button)
+
+        except Exception as e:
+            print(f"Error loading widgets: {e}")
 
 
     def updateWifiLabel(self):
-        is_connected = ConnectedToWifi.is_wifi_connected()
+        self.is_connected = ConnectedToWifi.is_wifi_connected()
         show_ssid = ConnectedToWifi.get_connected_wifi_ssid()
 
-        if is_connected:
+        if self.is_connected:
             self.wifi_icon.load('svgs/wifi_on.svg')
+            self.wifi_ico.setText(self.online_icon)
             self.wifi_icon.setToolTip(f"Connected to {show_ssid}")
         else:
             self.wifi_icon.load('svgs/wifi_off.svg')
+            self.wifi_ico.setText(self.offline_icon)
             self.wifi_icon.setToolTip("No Wi-Fi connection")
-
 
     def show_tooltip_above_wifi(self, event):
         tooltip_position = self.wifi_icon.mapToGlobal(QPoint(0, -self.wifi_icon.height() - 40))
@@ -243,9 +375,14 @@ class Taskpy(QWidget):
         QToolTip.showText(tooltip_position, self.battery_icon.toolTip(), self.battery_icon)
         event.accept()
 
+
     def show_tooltip_above_trash(self, event):
-        tooltip_position = self.button.mapToGlobal(QPoint(0, -self.button.height() - 40))
-        QToolTip.showText(tooltip_position, self.button.toolTip(), self.button)
+        if self.trash_enabled:
+            tooltip_position = self.custom_trash.mapToGlobal(QPoint(0, -self.custom_trash.height() - 40))
+            QToolTip.showText(tooltip_position, self.custom_trash.toolTip(), self.custom_trash)
+        else:
+            tooltip_position = self.trash_button_.mapToGlobal(QPoint(0, -self.trash_button_.height() - 40))
+            QToolTip.showText(tooltip_position, self.trash_button_.toolTip(), self.trash_button_)
         event.accept()
 
     def hide_tooltip(self, event):
@@ -266,8 +403,6 @@ class Taskpy(QWidget):
         ram_usage = Utils.ram_usage()
         ram_used_gb = Utils.get_used_ram_gb()
         ram_total_gb = Utils.get_total_ram_gb()
-
-
 
         self.cpu_tooltip = f"CPU Frequency: {cpu_freq:.2f} MHz\nCPU Usage: {cpu_usage}%\nCPU Temp: {cpu_temp}"
         self.ram_tooltip = f"RAM Used: {ram_used_gb:.2f} GB / {ram_total_gb:.2f} GB\nRAM Usage: {ram_usage}%"
@@ -340,8 +475,8 @@ class Taskpy(QWidget):
         return super().eventFilter(obj, event)
 
 
-app = QApplication(sys.argv)
-taskbar = Taskpy()
-taskbar.show()
-
-sys.exit(app.exec_())
+if __name__ == "__main__":
+    app = QApplication(sys.argv)
+    taskbar = Bar()
+    taskbar.show()
+    sys.exit(app.exec_())
