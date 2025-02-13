@@ -205,6 +205,7 @@ if __name__ == "__main__":
     app = QApplication(sys.argv)
     window = ClipBoard()
     window.setWindowIcon(QIcon("svgs/clipboard.svg"))
+    window.setWindowTitle("FluxBoard")
     window.resize(500, 500)
     window.show()
     sys.exit(app.exec_())

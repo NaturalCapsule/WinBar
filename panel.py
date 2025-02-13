@@ -15,7 +15,9 @@ from exit import Exit
 from threading import Thread
 from message import Message
 from clipboard import ClipBoard
-from rich import print
+from rich.console import Console
+from rich.text import Text
+
 from date import get_calendar_html
 from screenshot import take_screenshot, take_shot
 from media import *
@@ -157,10 +159,20 @@ class SidePanel(QWidget):
         self.animation = QPropertyAnimation(self, b"geometry")
 
         os.system('cls')
-        print("[cyan]---------------YOU CAN NOW CLOSE THIS TERMINAL!!---------------")
+        self.rainbow_text("---------------YOU CAN NOW CLOSE THIS TERMINAL!!---------------")
 
         self.monitor_exit_thread = Thread(target=self.exit_function, daemon=True)
         self.monitor_exit_thread.start()
+
+    def rainbow_text(self, text):
+        console = Console()
+        colors = ["red", "orange1", "yellow", "green", "cyan", "blue", "magenta", 'black', 'cyan']
+        styled_text = Text()
+        
+        for i, char in enumerate(text):
+            styled_text.append(char, style=colors[i % len(colors)])
+        
+        console.print(styled_text)
 
     # def set_opacity(self):
     #     self.eff = QGraphicsOpacityEffect()
@@ -531,6 +543,7 @@ def run_loop():
     app = QApplication([])
 
     _side = SidePanel()
+    _side.setWindowTitle("FluxPanel")
     
     Thread(target=start_asyncio_loop, args=(_side,), daemon=True).start()
 

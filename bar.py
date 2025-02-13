@@ -337,8 +337,6 @@ class Bar(QWidget):
             for widget in widgets['pre-made']:
                 if widget.get('docks') == "show docks":
                     for dock_button in self.docks:
-                        # dock_button.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Preferred)  # Prevent width expansion
-                        # dock_button.setMaximumWidth(100)
                         layout_target = widget['layout']
                         if layout_target == 'left':
                             left_layout.addWidget(dock_button)
@@ -477,6 +475,7 @@ class Bar(QWidget):
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
-    taskbar = Bar()
-    taskbar.show()
+    fluxbar = Bar()
+    fluxbar.setWindowTitle("FluxBar")
+    fluxbar.show()
     sys.exit(app.exec_())
