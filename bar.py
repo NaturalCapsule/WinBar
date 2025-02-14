@@ -3,7 +3,7 @@ import sys
 import psutil
 import time
 from PyQt5.QtGui import QColor, QPainter
-from PyQt5.QtWidgets import QApplication, QHBoxLayout, QLabel, QWidget, QToolTip, QPushButton
+from PyQt5.QtWidgets import QApplication, QProgressBar, QHBoxLayout, QLabel, QWidget, QToolTip, QPushButton
 from PyQt5.QtCore import Qt, QTimer, QEvent, QPoint
 from PyQt5.QtSvg import QSvgWidget
 import configparser
@@ -20,6 +20,11 @@ import subprocess
 from functools import partial
 import json
 from active_window import ScrollingLabel
+from rich.console import Console
+from rich.text import Text
+import os
+import pyuac
+import elevate
 
 class Bar(QWidget):
     def __init__(self):
@@ -40,8 +45,8 @@ class Bar(QWidget):
         self.taskbar_height_warning = config.getboolean('Bar', 'BarHeightWarning')
         self.taskbar_height = config.getint('Bar', 'BarHeight')
     
-        self.show_battery: bool = config.getboolean('Bar', 'showBattery')
         self.display_time_layout = config.get('Bar', 'timeLayout')
+        self.display_date_layout = config.get('Bar', 'dateLayout')
 
         border_radius = config.get('Bar', 'BarBorderRadius')
         self.border_radius1, self.border_radius2 = border_radius.split(', ')[0], border_radius.split(', ')[1]
@@ -54,6 +59,20 @@ class Bar(QWidget):
 
         self.heightGap = config.getint('Bar', 'HeightGap')
         self.widthGap = config.getint('Bar', 'WidthGap')
+
+        os.system('cls')
+        self.rainbow_text("---------------YOU CAN NOW CLOSE THIS TERMINAL!!---------------")
+
+    def rainbow_text(self, text):
+        console = Console()
+        colors = ["red", "orange1", "yellow", "green", "cyan", "blue", "magenta", 'black', 'cyan']
+        styled_text = Text()
+        
+        for i, char in enumerate(text):
+            styled_text.append(char, style=colors[i % len(colors)])
+        
+        console.print(styled_text)
+
 
     def taskbar_warning(self):
         if self.taskbar_height > 80:
@@ -132,12 +151,15 @@ class Bar(QWidget):
         self.time_label.setObjectName('timeLabel')
         self.time_label.setStyleSheet(self.css)
 
+        self.progress_bar = QProgressBar(self)
+        self.progress_bar.setMaximum(100)
+        self.progress_bar.setMinimum(0)
+        self.progress_bar.setFixedSize(40, 18)
+        self.progress_bar.setObjectName("Battery")
+        self.progress_bar.setStyleSheet(self.css)
 
         self.get_window = ScrollingLabel(self)
 
-        self.battery_icon = QSvgWidget()
-        self.battery_icon.setFixedSize(20, 20)
-        
         self.wifi_ico = QLabel()
         self.wifi_ico.setObjectName('WifiLabel')
         self.offline_icon = ""
@@ -166,8 +188,8 @@ class Bar(QWidget):
         self.updateBattery()
         update_battery = QTimer(self)
         update_battery.timeout.connect(self.updateBattery)
-        self.battery_icon.enterEvent = self.show_tooltip_above_battery
-        self.battery_icon.leaveEvent = self.hide_tooltip
+        self.progress_bar.enterEvent = self.show_tooltip_above_battery
+        self.progress_bar.leaveEvent = self.hide_tooltip
         update_battery.start(1000)
         
 
@@ -265,13 +287,13 @@ class Bar(QWidget):
             with open(file_path, "r") as file:
                 widgets = json.load(file)
 
-                for self.widget in widgets['pre-made']:
+                for self.widget in widgets['widgets']:
                     layout_target = self.widget.get("layout", "SELECT A LAYOUT")
                     widget_item = None
 
 
                     if "battery" in self.widget:
-                        widget_item = self.battery_icon
+                        widget_item = self.progress_bar
 
                     elif "wifi" in self.widget:
                         wifi_con = self.wifi_icon
@@ -334,7 +356,7 @@ class Bar(QWidget):
 
             self.docks = DockApp().dock_buttons
 
-            for widget in widgets['pre-made']:
+            for widget in widgets['widgets']:
                 if widget.get('docks') == "show docks":
                     for dock_button in self.docks:
                         layout_target = widget['layout']
@@ -369,8 +391,8 @@ class Bar(QWidget):
         event.accept()
 
     def show_tooltip_above_battery(self, event):
-        tooltip_position = self.battery_icon.mapToGlobal(QPoint(0, -self.battery_icon.height() - 40))
-        QToolTip.showText(tooltip_position, self.battery_icon.toolTip(), self.battery_icon)
+        tooltip_position = self.progress_bar.mapToGlobal(QPoint(0, -self.progress_bar.height() - 40))
+        QToolTip.showText(tooltip_position, self.progress_bar.toolTip(), self.progress_bar)
         event.accept()
 
 
@@ -424,36 +446,18 @@ class Bar(QWidget):
         if battery is None:
             battery = -1
 
-        if battery != -1 and battery_plugged:
-            self.battery_icon.load('svgs/battery-charging.svg')
+        self.progress_bar.setValue(battery)
 
-        elif battery != -1 and battery == 100:
-            self.battery_icon.load('svgs/battery-full.svg')
 
-        elif battery != -1 and battery >= 60 and battery < 100:
-            self.battery_icon.load('svgs/battery-high.svg')
-
-        elif battery != -1 and battery < 60 and battery >= 40:
-            self.battery_icon.load('svgs/battery-half.svg')
-
-        elif battery != -1 and battery <= 59 and battery >= 40:
-           self.battery_icon.load('svgs/battery-half.svg')
-
-        elif battery != -1 and battery <= 39 and battery >= 10:
-            self.battery_icon.load('svgs/battery-medium.svg')
-
-        elif battery != -1 and battery < 10:
-            self.battery_icon.load('svgs/battery-low.svg')
-
-        elif battery == -1:
-            self.battery_icon.load('svgs/battery-error.svg')
-
-        self.battery_icon.setToolTip(f"Battery Level: {battery}%")
+        if battery_plugged:
+            self.progress_bar.setToolTip(f"Plugged")
+        else:
+            self.progress_bar.setToolTip(f"Not Plugged")
 
 
     def updateTime(self):
         today = date.today()
-        today = today.strftime("%d %b %Y")
+        today = today.strftime(self.display_date_layout)
         current_time = time.strftime(self.display_time_layout)
         self.time_label.setText(f"{current_time} | {today}")
 
@@ -474,8 +478,15 @@ class Bar(QWidget):
 
 
 if __name__ == "__main__":
-    app = QApplication(sys.argv)
-    fluxbar = Bar()
-    fluxbar.setWindowTitle("FluxBar")
-    fluxbar.show()
-    sys.exit(app.exec_())
+    try:
+        if not pyuac.isUserAdmin():
+            elevate.elevate(show_console = False)
+            sys.exit(0)
+        app = QApplication(sys.argv)
+        fluxbar = Bar()
+        fluxbar.setWindowTitle("FluxBar")
+        fluxbar.show()
+        sys.exit(app.exec_())
+
+    except OSError as e:
+        print("Error", e)

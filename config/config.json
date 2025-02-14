@@ -1,6 +1,6 @@
 {
     "explaning": [
-        "In the 'pre-made' section it you can add your own labels or buttons using the examples i provided and make your own buttons and lables",
+        "In the 'widgets' section it you can add your own labels or buttons using the examples i provided and make your own buttons and lables",
         "If you dont like the layouts you can move the labels and buttons to match your layout like you can remove the 'menu' and move it to the first section",
         "If you have any layouts problem (like the middle layout is to the left or right) you can add lables and make them trasparent to make the middle layout in the middle",
         
@@ -12,7 +12,7 @@
         ],
 
 
-    "pre-made": [
+    "widgets": [
         {
             "type": "label",
             "name": "label1",

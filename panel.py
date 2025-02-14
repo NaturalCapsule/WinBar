@@ -9,7 +9,7 @@ from PyQt5.QtCore import Qt, QTimer, QPropertyAnimation, QThread, pyqtSignal, QT
 from PyQt5.QtGui import QColor, QPainter, QRegion, QIcon, QPixmap, QBitmap
 from PyQt5.QtWidgets import QGraphicsOpacityEffect, QApplication, QWidget, QLabel, QPushButton, QMenu, QAction, QLineEdit
 from weather import Weather
-from windows_mods import Mods
+from windows_modes import Modes
 from configparser import ConfigParser
 from exit import Exit
 from threading import Thread
@@ -373,7 +373,7 @@ class SidePanel(QWidget):
         subprocess.run(["python", "main.py"], cwd = game_dir)
 
     def menu(self):
-        mods = Mods()
+        mods = Modes()
 
         self._menu = QMenu(self)
         self._menu.setObjectName("SideMenu")

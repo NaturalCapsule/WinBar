@@ -1,19 +1,14 @@
 import os
-import elevate
 from PyQt5.QtWidgets import QPushButton
 from PyQt5.QtGui import QIcon
 from configparser import ConfigParser
 import psutil
 import subprocess
-import pyuac
 
 username = os.getlogin()
 
 class DockApp:
     def __init__(self):
-        if not pyuac.isUserAdmin():
-            elevate.elevate(show_console = False)
-            return
         self.dock_buttons = []
         self.loadAppsFromConfig()
         self.open_apps = {}

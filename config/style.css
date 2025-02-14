@@ -119,6 +119,19 @@
     padding: 3px;
 }
 
+#Battery {
+    border: 1px solid #2E2E2E;
+    border-radius: 5px;
+    background-color: #1E1E1E;
+    text-align: center;
+    font: bold 10px Arial;
+    color: white;
+    padding: 0px;
+}
+#Battery::chunk {
+    border-radius: 5px;
+    background-color: #4CAF50;
+}
 
 #menu {
     background-color: #2e3440;

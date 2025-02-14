@@ -1,6 +1,6 @@
 import subprocess
 
-class Mods:
+class Modes:
     def __init__(self):
         pass
 
