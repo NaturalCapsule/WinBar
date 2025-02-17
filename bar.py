@@ -2,29 +2,30 @@
 import sys
 import psutil
 import time
+import os
+import pyuac
+import elevate
+import configparser
+import subprocess
+import json
 from PyQt5.QtGui import QColor, QPainter
 from PyQt5.QtWidgets import QApplication, QProgressBar, QHBoxLayout, QLabel, QWidget, QToolTip, QPushButton
 from PyQt5.QtCore import Qt, QTimer, QEvent, QPoint
 from PyQt5.QtSvg import QSvgWidget
-import configparser
 from docks import DockApp
 from wifi import ConnectedToWifi
 from datetime import date
-from nvidia import Nvidia 
+from nvidia import Nvidia
 from utils import Utils
 from message import Message
 from exit import Exit
 from threading import Thread
 from menu import Menu
-import subprocess
 from functools import partial
-import json
 from active_window import ScrollingLabel
 from rich.console import Console
 from rich.text import Text
-import os
-import pyuac
-import elevate
+
 
 class Bar(QWidget):
     def __init__(self):
@@ -150,6 +151,16 @@ class Bar(QWidget):
         self.time_label = QLabel("")
         self.time_label.setObjectName('timeLabel')
         self.time_label.setStyleSheet(self.css)
+
+        self.cpu_temp_label = QLabel()
+        self.cpu_usage_label = QLabel()
+        self.ram_usage_label = QLabel()
+        self.ram_usedgb_label = QLabel()
+        self.ram_usedtotalgb_label = QLabel()
+        self.nvidia_temp_label = QLabel()
+        self.nvidia_usedvram_label = QLabel()
+        self.nvidia_totvram_label = QLabel()
+        self.nvidia_usage_label = QLabel()
 
         self.progress_bar = QProgressBar(self)
         self.progress_bar.setMaximum(100)
@@ -338,8 +349,79 @@ class Bar(QWidget):
 
                     elif "type" in self.widget:
                         if self.widget["type"] == "label":
-                            widget_item = QLabel(self.widget["text"])
+                            if self.widget['text'] == 'cputemp':
+                                timer = QTimer(self)
+                                timer.timeout.connect(self.update_cpu_temp)
+                                timer.start(1000)
+
+                                widget_item = self.cpu_temp_label
+                            elif self.widget['text'] == 'cpuUsage':
+                                timer = QTimer(self)
+                                timer.timeout.connect(self.update_cpu_usage)
+                                timer.start(1000)
+
+                                widget_item = self.cpu_usage_label
+
+                            elif self.widget['text'] == 'ramusage':
+                                timer = QTimer(self)
+                                timer.timeout.connect(self.update_ram_usage)
+                                timer.start(1000)
+
+                                widget_item = self.ram_usage_label
+
+                            elif self.widget['text'] == 'ramtotalGB':
+                                timer = QTimer(self)
+                                timer.timeout.connect(self.update_ram_totalGB)
+                                timer.start(1000)
+
+                                widget_item = self.ram_usedtotalgb_label
+
+                            elif self.widget['text'] == 'ramusedGB':
+                                timer = QTimer(self)
+                                timer.timeout.connect(self.update_ram_usedGB)
+                                timer.start(1000)
+
+                                widget_item = self.ram_usedgb_label
+
+                            elif self.widget['text'] == 'ramusage':
+                                timer = QTimer(self)
+                                timer.timeout.connect(self.update_ram_usage)
+                                timer.start(1000)
+
+                                widget_item = self.ram_usage_label
+
+                            elif self.widget['text'] == 'nvidiatemp':
+                                timer = QTimer(self)
+                                timer.timeout.connect(self.update_nvidia_temp)
+                                timer.start(1000)
+
+                                widget_item = self.nvidia_temp_label
+
+                            elif self.widget['text'] == 'nvidiausage':
+                                timer = QTimer(self)
+                                timer.timeout.connect(self.update_nvidia_usage)
+                                timer.start(1000)
+
+                                widget_item = self.nvidia_usage_label
+
+                            elif self.widget['text'] == 'nvidiaTOTVram':
+                                timer = QTimer(self)
+                                timer.timeout.connect(self.update_nvidia_totVram)
+                                timer.start(1000)
+
+                                widget_item = self.nvidia_totvram_label
+
+                            elif self.widget['text'] == 'nvidiaUSEDVram':
+                                timer = QTimer(self)
+                                timer.timeout.connect(self.update_nvidia_usedVram)
+                                timer.start(1000)
+
+                                widget_item = self.nvidia_usedvram_label
+
+                            else:
+                                widget_item = QLabel(self.widget["text"])
                             widget_item.setObjectName(self.widget["name"])
+                            # if 
                         elif self.widget["type"] == "button":
                             widget_item = QPushButton(self.widget["text"])
                             widget_item.setObjectName(self.widget["name"])
@@ -370,6 +452,42 @@ class Bar(QWidget):
 
         except Exception as e:
             print(f"Error loading widgets: {e}")
+
+    def update_cpu_temp(self):
+        cpu_temp = Utils.get_cpu_temperature()
+        self.cpu_temp_label.setText(str(cpu_temp))
+
+    def update_cpu_usage(self):
+        cpu_usage = Utils.get_cpu_usage()
+        self.cpu_usage_label.setText(str(cpu_usage))
+
+    def update_ram_usage(self):
+        ram_usage = Utils.ram_usage()
+        self.ram_usage_label.setText(str(ram_usage))
+
+    def update_ram_totalGB(self):
+        ram_tot_gb = Utils.get_total_ram_gb()
+        self.ram_usedtotalgb_label.setText(f"{ram_tot_gb:.2f}")
+
+    def update_ram_usedGB(self):
+        ram_used = Utils.get_used_ram_gb()
+        self.ram_usedgb_label.setText(f"{ram_used:.2f}")
+
+    def update_nvidia_temp(self):
+        nvidia_temp = Nvidia.get_nvidia_gpu_temperature(self)
+        self.nvidia_temp_label.setText(f"{nvidia_temp}°C")
+    
+    def update_nvidia_usedVram(self):
+        nvidia_vram = Nvidia.get_used_vram(self)
+        self.nvidia_usedvram_label.setText(nvidia_vram)
+    
+    def update_nvidia_usage(self):
+        nvidia_usage = Nvidia.get_nvidia_gpu_usage(self)
+        self.nvidia_usage_label.setText(nvidia_usage)
+    
+    def update_nvidia_totVram(self):
+        nvidia_totVram = Nvidia.get_tot_vram(self)
+        self.nvidia_totvram_label.setText(nvidia_totVram)
 
 
     def updateWifiLabel(self):
@@ -431,8 +549,8 @@ class Bar(QWidget):
             self.gpu_tooltip = ""
             gpu_usage = ""
             gpu_text = ""
-        self.gpu_tooltip = f"GPU Temperature: {gpu_temp}°C\nGPU Usage: {gpu_usage}%\nGPU VRAM Used: {used_vram:.2f} GB / {tot_vram} GB"
-        self.sys_info_label.setText(f"CPU: {cpu_usage}% | RAM: {ram_usage}% {gpu_text}{gpu_usage}%")
+        self.gpu_tooltip = f"GPU Temperature: {gpu_temp}°C\nGPU Usage: {gpu_usage}\nGPU VRAM Used: {used_vram} GB / {tot_vram} GB"
+        self.sys_info_label.setText(f"CPU: {cpu_usage}% | RAM: {ram_usage}% {gpu_text}{gpu_usage}")
 
     def updateBattery(self):
         try:

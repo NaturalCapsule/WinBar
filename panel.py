@@ -5,9 +5,9 @@ import configparser
 import subprocess
 import speech_recognition as sr
 import asyncio
-from PyQt5.QtCore import Qt, QTimer, QPropertyAnimation, QThread, pyqtSignal, QTimer, QRect, QEasingCurve, QPoint, QSize
-from PyQt5.QtGui import QColor, QPainter, QRegion, QIcon, QPixmap, QBitmap
-from PyQt5.QtWidgets import QGraphicsOpacityEffect, QApplication, QWidget, QLabel, QPushButton, QMenu, QAction, QLineEdit
+from PyQt5.QtCore import  Qt, QTimer, QPropertyAnimation, QThread, pyqtSignal, QTimer, QRect, QEasingCurve, QPoint, QSize
+from PyQt5.QtGui import QColor, QPainter, QRegion, QIcon, QPixmap
+from PyQt5.QtWidgets import  QApplication, QWidget, QLabel, QPushButton, QMenu, QAction, QLineEdit
 from weather import Weather
 from windows_modes import Modes
 from configparser import ConfigParser

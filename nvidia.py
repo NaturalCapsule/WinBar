@@ -18,7 +18,7 @@ class Nvidia:
                     self.handle = pynvml.nvmlDeviceGetHandleByIndex(0)
                     vram_used = pynvml.nvmlDeviceGetMemoryInfo(self.handle).used
                 vram_used_gb = vram_used / (1024 ** 3)
-                return vram_used_gb
+                return f"{vram_used_gb:.2f}GB"
             except pynvml.NVMLError as e:
                 print(f"Error initializing pynvml: {e}")
                 return 0
@@ -28,7 +28,7 @@ class Nvidia:
             result = subprocess.run(['nvidia-smi', '--query-gpu=utilization.gpu', '--format=csv,noheader,nounits'],
                                     stdout=subprocess.PIPE, text=True)
             usage = result.stdout.strip()
-            return f"{usage}"
+            return f"{usage}%"
         except FileNotFoundError:
             return ''
 
@@ -52,7 +52,7 @@ class Nvidia:
         try:
             vram_total = pynvml.nvmlDeviceGetMemoryInfo(self.handle).total
             vram_total_gb = vram_total / (1024 ** 3)
-            return vram_total_gb
+            return f"{vram_total_gb:.2f}GB"
         except pynvml.NVMLError as e:
             print(f"Error getting total VRAM: {e}")
             return 0

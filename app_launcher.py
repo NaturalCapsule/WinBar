@@ -1,11 +1,11 @@
 import sys
 import os
 import subprocess
+import win32com.client
 from PyQt5.QtWidgets import QApplication, QWidget, QVBoxLayout, QLineEdit, QListWidget, QMessageBox
 from PyQt5.QtCore import Qt, QPoint
 from PyQt5.QtGui import QIcon
 from rapidfuzz import process, fuzz
-import win32com.client
 
 class AppSearch(QWidget):
     def __init__(self):

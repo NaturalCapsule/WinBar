@@ -1,12 +1,12 @@
 import sys
 import time
 import pyperclip
+import os
+import keyboard
 from PyQt5.QtCore import QMutex, Qt, QThread, pyqtSignal, QPoint, QRect, QPropertyAnimation, QEasingCurve, QTimer
 from PyQt5.QtWidgets import QWidget, QVBoxLayout, QListWidget, QApplication, QScrollBar, QPushButton
 from PyQt5.QtGui import QIcon
 from configparser import ConfigParser
-import os
-import keyboard
 
 config = ConfigParser()
 
@@ -24,7 +24,7 @@ class CheckThread(QThread):
         super().__init__()
         self.last_content = ""
         self.file = None
-        self.mutex = QMutex()
+        # self.mutex = QMutex()
 
 
     def run(self):
