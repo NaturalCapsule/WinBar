@@ -30,7 +30,7 @@ class CheckThread(QThread):
     def run(self):
         use_file = get_info
         if use_file:
-            with open(file_path, "a") as f:
+            with open(file_path, "a", encoding = 'UTF-8') as f:
                 while True:
                     current_content = pyperclip.paste()
                     if current_content != self.last_content:
@@ -168,7 +168,7 @@ class ClipBoard(QWidget):
 
         if use_file:
             try:
-                with open(file_path, "r") as f:
+                with open(file_path, "r", encoding = 'UTF-8') as f:
                     new_ = f.read()
                     file_content = set(new_.split("\n"))
 
@@ -186,7 +186,7 @@ class ClipBoard(QWidget):
             self.qlist.addItem(stripped_content)
 
             try:
-                with open(file_path, "a") as f:
+                with open(file_path, "a", encoding = 'UTF-8') as f:
                     f.write(content.strip() + "\n")
             except Exception as e:
                 print(f"Error writing to file: {e}")

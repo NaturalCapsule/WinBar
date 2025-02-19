@@ -8,6 +8,7 @@ import elevate
 import configparser
 import subprocess
 import json
+import ctypes
 from PyQt5.QtGui import QColor, QPainter
 from PyQt5.QtWidgets import QApplication, QProgressBar, QHBoxLayout, QLabel, QWidget, QToolTip, QPushButton
 from PyQt5.QtCore import Qt, QTimer, QEvent, QPoint
@@ -25,15 +26,32 @@ from functools import partial
 from active_window import ScrollingLabel
 from rich.console import Console
 from rich.text import Text
+from ctypes import wintypes
 
+ABM_NEW = 0x00000000
+ABM_REMOVE = 0x00000001
+ABM_QUERYPOS = 0x00000002
+ABM_SETPOS = 0x00000003
+ABE_TOP = 1
+ABE_BOTTOM = 3
+
+class APPBARDATA(ctypes.Structure):
+    _fields_ = [
+        ("cbSize", wintypes.DWORD),
+        ("hWnd", wintypes.HWND),
+        ("uCallbackMessage", wintypes.UINT),
+        ("uEdge", wintypes.UINT),
+        ("rc", wintypes.RECT),
+        ("lParam", wintypes.LPARAM),
+    ]
 
 class Bar(QWidget):
     def __init__(self):
         super().__init__()
         self.loadConfig()
         self.initUI()
+        self.register_as_taskbar()
         self.load_widgets_from_json('config/config.json', self.left_layout, self.right_layout, self.middle_layout)
-        self.open_apps = {}
 
         subprocess.Popen(["python", "panel.py"])
         self.monitor_exit_thread = Thread(target=self.exit_function, daemon=True)
@@ -205,6 +223,32 @@ class Bar(QWidget):
         
 
         self.sys_info_label.installEventFilter(self)
+
+
+    def register_as_taskbar(self):
+        self.appbar_data = APPBARDATA()
+        self.appbar_data.cbSize = ctypes.sizeof(APPBARDATA)
+        self.appbar_data.hWnd = int(self.winId())
+        self.appbar_data.uEdge = ABE_BOTTOM  # Change to ABE_TOP if at top!. top bar will be added soon! (maybe...)
+
+        screen_width = QApplication.desktop().screenGeometry().width()
+        screen_height = QApplication.desktop().screenGeometry().height()
+        taskbar_height = self.taskbar_height
+        width_gap = self.widthGap
+
+        self.appbar_data.rc = wintypes.RECT(
+            width_gap, 
+            screen_height - taskbar_height, 
+            screen_width - width_gap, 
+            screen_height
+        )
+
+        ctypes.windll.shell32.SHAppBarMessage(ABM_NEW, ctypes.byref(self.appbar_data))
+        ctypes.windll.shell32.SHAppBarMessage(ABM_SETPOS, ctypes.byref(self.appbar_data))
+
+    def closeEvent(self, event):
+        ctypes.windll.shell32.SHAppBarMessage(ABM_REMOVE, ctypes.byref(self.appbar_data))
+        event.accept()
 
 
     def paintEvent(self, event):
@@ -421,7 +465,7 @@ class Bar(QWidget):
                             else:
                                 widget_item = QLabel(self.widget["text"])
                             widget_item.setObjectName(self.widget["name"])
-                            # if 
+                            
                         elif self.widget["type"] == "button":
                             widget_item = QPushButton(self.widget["text"])
                             widget_item.setObjectName(self.widget["name"])
@@ -597,9 +641,9 @@ class Bar(QWidget):
 
 if __name__ == "__main__":
     try:
-        if not pyuac.isUserAdmin():
-            elevate.elevate(show_console = False)
-            sys.exit(0)
+        # if not pyuac.isUserAdmin():
+        #     elevate.elevate(show_console = False)
+        #     sys.exit(0)
         app = QApplication(sys.argv)
         fluxbar = Bar()
         fluxbar.setWindowTitle("FluxBar")
