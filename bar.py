@@ -58,8 +58,8 @@ class Bar(QWidget):
         self.heightGap = config.getint('Bar', 'HeightGap')
         self.widthGap = config.getint('Bar', 'WidthGap')
 
-        # os.system('cls')
-        # self.rainbow_text("---------------YOU CAN NOW CLOSE THIS TERMINAL!!---------------")
+        os.system('cls')
+        self.rainbow_text("---------------YOU CAN NOW CLOSE THIS TERMINAL!!---------------")
 
     def rainbow_text(self, text):
         console = Console()
@@ -217,9 +217,9 @@ class Bar(QWidget):
 
 if __name__ == "__main__":
     try:
-        # if not pyuac.isUserAdmin():
-        #     elevate.elevate(show_console = False)
-        #     sys.exit(0)
+        if not pyuac.isUserAdmin():
+            elevate.elevate(show_console = False)
+            sys.exit(0)
         app = QApplication(sys.argv)
         fluxbar = Bar()
         fluxbar.setWindowTitle("FluxBar")
