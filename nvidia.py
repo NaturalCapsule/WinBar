@@ -3,25 +3,37 @@ import pynvml
 
 
 class Nvidia:
-    def __init__(self) -> None:
-        return
+    def __init__(self):
+        self.handle = None
+        self.has_nvidia_gpu = False
+        try:
+            pynvml.nvmlInit()
+            self.num_gpus = pynvml.nvmlDeviceGetCount()
+            if self.num_gpus > 0:
+                self.has_nvidia_gpu = True
+                self.handle = pynvml.nvmlDeviceGetHandleByIndex(0)
+        except pynvml.NVMLError:
+              print('')
+              return 0
+
+
+        # self.get_used_vram()
+
 
     def get_used_vram(self):
-            self.handle = None
-            self.has_nvidia_gpu = False
-            
-            try:
-                pynvml.nvmlInit()
-                self.num_gpus = pynvml.nvmlDeviceGetCount()
-                if self.num_gpus > 0:
-                    self.has_nvidia_gpu = True
-                    self.handle = pynvml.nvmlDeviceGetHandleByIndex(0)
-                    vram_used = pynvml.nvmlDeviceGetMemoryInfo(self.handle).used
-                vram_used_gb = vram_used / (1024 ** 3)
-                return f"{vram_used_gb:.2f}GB"
-            except pynvml.NVMLError as e:
-                print(f"Error initializing pynvml: {e}")
-                return 0
+            # self.has_nvidia_gpu = self.test_1()
+            # try:
+            #     pynvml.nvmlInit()
+            #     self.num_gpus = pynvml.nvmlDeviceGetCount()
+            #     if self.num_gpus > 0:
+            #         self.has_nvidia_gpu = True
+            #         self.handle = pynvml.nvmlDeviceGetHandleByIndex(0)
+        vram_used = pynvml.nvmlDeviceGetMemoryInfo(self.handle).used
+        vram_used_gb = vram_used / (1024 ** 3)
+        return f"{vram_used_gb:.2f}GB"
+            # except pynvml.NVMLError as e:
+            #     print(f"Error initializing pynvml: {e}")
+            #     return 0
 
     def get_nvidia_gpu_usage(self):
         try:

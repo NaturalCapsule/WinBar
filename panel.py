@@ -118,6 +118,7 @@ class SidePanel(QWidget):
         self.media_icon1, self.media_icon2 = self.media_icon.split(', ')[0], self.media_icon.split(', ')[1]
         self.media_icon1, self.media_icon2 = int(self.media_icon1), int(self.media_icon2)
 
+        # print(self.colors[:])
 
         self.weather = Weather()
         self.temp = self.weather.get_temp()
@@ -158,8 +159,8 @@ class SidePanel(QWidget):
 
         self.animation = QPropertyAnimation(self, b"geometry")
 
-        os.system('cls')
-        self.rainbow_text("---------------YOU CAN NOW CLOSE THIS TERMINAL!!---------------")
+        # os.system('cls')
+        # self.rainbow_text("---------------YOU CAN NOW CLOSE THIS TERMINAL!!---------------")
 
         self.monitor_exit_thread = Thread(target=self.exit_function, daemon=True)
         self.monitor_exit_thread.start()
@@ -200,8 +201,12 @@ class SidePanel(QWidget):
         painter = QPainter(self)
         painter.setRenderHint(QPainter.Antialiasing)
 
-        painter.setBrush(QColor(int(self.colors[0]), int(self.colors[1]), int(self.colors[2]), alpha = int(self.colors[-1])))
+        alpha = max(0, min(int(self.colors[-1]), 255))
+
+
+        painter.setBrush(QColor(int(self.colors[0]), int(self.colors[1]), int(self.colors[2]), alpha = alpha))
         painter.drawRoundedRect(self.rect(), int(self.panel_rad1), int(self.panel_rad2))
+
 
     def animate_panel(self, show):
         self.animation.setDuration(300)
@@ -326,38 +331,52 @@ class SidePanel(QWidget):
             self.media_button.clicked.connect(self.toggle_icon)
 
     def pix(self):
-        pixmap = QPixmap(fr"c:\Users\{self.username}\AppData\Local\Temp\thumbnail.jpg")
+        path = fr"c:\Users\{self.username}\AppData\Local\Temp\thumbnail.jpg"
+        if not os.path.exists(path):
+            print(f"File not found: {path}")
+            return
+
+        pixmap = QPixmap(path)
+        if pixmap.isNull():
+            print("Pixmap is null!")
+            return
+
         pixmap = pixmap.scaled(250, 100, Qt.KeepAspectRatioByExpanding, Qt.SmoothTransformation)
 
         mask = QPixmap(pixmap.size())
         mask.fill(Qt.transparent)
 
         painter = QPainter(mask)
-        painter.setRenderHint(QPainter.Antialiasing)
-        painter.setBrush(Qt.white)
-        painter.setPen(Qt.transparent)
-        rect = QRect(0, 0, pixmap.width(), pixmap.height())
-        painter.drawRoundedRect(rect, int(self.rad1), int(self.rad2))
-        painter.end()
+        if painter.isActive():
+            painter.setRenderHint(QPainter.Antialiasing)
+            painter.setBrush(Qt.white)
+            painter.setPen(Qt.transparent)
+            rect = QRect(0, 0, pixmap.width(), pixmap.height())
+            painter.drawRoundedRect(rect, int(self.rad1), int(self.rad2))
+            painter.end()
 
         pixmap.setMask(mask.createHeuristicMask())
 
         current_session = c_session_info()
-
         if current_session != "No active media session to control.":
             self.media_image.setPixmap(pixmap)
         else:
             blank_pixmap = QPixmap(self.media_image.size())
+            if blank_pixmap.isNull() or blank_pixmap.size().isEmpty():
+                print("Invalid media_image size")
+                return
+            
             blank_pixmap.fill(Qt.transparent)
-
             painter = QPainter(blank_pixmap)
-            painter.setPen(QColor("gray"))
-            painter.drawText(blank_pixmap.rect(), Qt.AlignCenter, "No Media")
-            painter.end()
+            if painter.isActive():
+                painter.setPen(QColor("gray"))
+                painter.drawText(blank_pixmap.rect(), Qt.AlignCenter, "No Media")
+                painter.end()
 
             self.media_image.setPixmap(blank_pixmap)
 
         return pixmap
+
         
     def clip_board(self):
         self.clipboard.toggle_side_clipboard()
@@ -373,26 +392,26 @@ class SidePanel(QWidget):
         subprocess.run(["python", "main.py"], cwd = game_dir)
 
     def menu(self):
-        mods = Modes()
+        modes = Modes()
 
         self._menu = QMenu(self)
         self._menu.setObjectName("SideMenu")
         self._menu.setStyleSheet(self.css)
 
         ultimate = QAction("Ultimate Performance")
-        ultimate.triggered.connect(mods.ultimate_mod)
+        ultimate.triggered.connect(modes.ultimate_mod)
         self._menu.addAction(ultimate)
 
         high = QAction("High Performance")
-        high.triggered.connect(mods.high_mod)
+        high.triggered.connect(modes.high_mod)
         self._menu.addAction(high)
 
         balanced = QAction("Balanced Performance")
-        balanced.triggered.connect(mods.balanced_mod)
+        balanced.triggered.connect(modes.balanced_mod)
         self._menu.addAction(balanced)
 
         low = QAction("Power Saver (Low Performance)")
-        low.triggered.connect(mods.low_mod)
+        low.triggered.connect(modes.low_mod)
         self._menu.addAction(low)
 
         button_pos = self.menu_button.mapToGlobal(QPoint(0, 0))
