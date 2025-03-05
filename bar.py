@@ -32,7 +32,7 @@ class Bar(QWidget):
         load_widgets_from_json('config/config.json', self.layouts.left_layout, self.layouts.right_layout, self.layouts.middle_layout, self.buttons, self.labels, self.progress_bar, self.get_window)
 
 
-        # subprocess.Popen(["python", "panel.py"])
+        subprocess.Popen(["python", "panel.py"])
         self.monitor_exit_thread = Thread(target=self.exit_function, daemon=True)
         self.monitor_exit_thread.start()
 
