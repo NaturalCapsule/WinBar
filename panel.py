@@ -159,8 +159,8 @@ class SidePanel(QWidget):
 
         self.animation = QPropertyAnimation(self, b"geometry")
 
-        # os.system('cls')
-        # self.rainbow_text("---------------YOU CAN NOW CLOSE THIS TERMINAL!!---------------")
+        os.system('cls')
+        self.rainbow_text("---------------YOU CAN NOW CLOSE THIS TERMINAL!!---------------")
 
         self.monitor_exit_thread = Thread(target=self.exit_function, daemon=True)
         self.monitor_exit_thread.start()
@@ -175,11 +175,6 @@ class SidePanel(QWidget):
         
         console.print(styled_text)
 
-    # def set_opacity(self):
-    #     self.eff = QGraphicsOpacityEffect()
-    #     # self.eff.setOpacity(float(self.opacity)) 
-    #     self.eff.
-    #     self.setGraphicsEffect(self.eff)
 
     def rewind_action(self):
         async def rewind_action_():
@@ -339,7 +334,7 @@ class SidePanel(QWidget):
         pixmap = QPixmap(path)
         if pixmap.isNull():
             print("Pixmap is null!")
-            return
+            # return
 
         pixmap = pixmap.scaled(250, 100, Qt.KeepAspectRatioByExpanding, Qt.SmoothTransformation)
 
@@ -562,7 +557,7 @@ def run_loop():
     app = QApplication([])
 
     _side = SidePanel()
-    _side.setWindowTitle("FluxPanel")
+    _side.setWindowTitle("WinBar")
     
     Thread(target=start_asyncio_loop, args=(_side,), daemon=True).start()
 

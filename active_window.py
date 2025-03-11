@@ -3,7 +3,7 @@ from PyQt5.QtWidgets import QLabel
 from PyQt5.QtCore import QTimer
 
 
-class ScrollingLabel(QLabel):
+class WindowName(QLabel):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setMaximumWidth(180)
@@ -11,7 +11,7 @@ class ScrollingLabel(QLabel):
 
         self.setObjectName('windowTitle')
         
-        self.setFixedSize(150, 18)
+        # self.setFixedSize(150, 18)
 
         with open('config/style.css', 'r') as file:
             css = file.read()

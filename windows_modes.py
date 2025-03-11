@@ -21,7 +21,6 @@ class Modes:
         self.print_active_scheme()
 
     def print_active_scheme(self):
-        """Print the current active power scheme for debugging."""
         result = subprocess.run(["powercfg", "/getactivescheme"], capture_output=True, text=True)
         print("Current Active Power Scheme:")
         print(result.stdout)

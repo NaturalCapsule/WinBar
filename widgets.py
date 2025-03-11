@@ -67,7 +67,7 @@ def load_widgets_from_json(file_path, left_layout, right_layout, middle_layout, 
                     if widget["type"] == "label":
                         widget_item = QLabel(widget["text"])
                         widget_item.setObjectName(widget["name"])
-                #         if widget['text'] == 'cputemp':
+                        # if widget['text'] == 'cputemp':
                 #             timer = QTimer(self)
                 #             timer.timeout.connect(self.update_cpu_temp)
                 #             timer.start(1000)

@@ -15,20 +15,22 @@ from message import Message
 from buttons import Buttons
 from exit import Exit
 from threading import Thread
-from active_window import ScrollingLabel
+from active_window import WindowName
 from rich.console import Console
 from rich.text import Text
-from shrink_desktop import register_as_taskbar
 from battery_bar import Battery
-from widgets import load_widgets_from_json
 from updates import *
+from shrink_desktop import register_as_taskbar
+from widgets import load_widgets_from_json
+from BlurWindow.blurWindow import blur
 
 class Bar(QWidget):
     def __init__(self):
         super().__init__()
         self.loadConfig()
         self.initUI()
-        register_as_taskbar(QApplication, self.taskbar_height, self.widthGap, self.winId)
+        if self.shrink_desktop:
+            register_as_taskbar(QApplication, self.taskbar_height, self.widthGap, self.winId, self.bar_position)
         load_widgets_from_json('config/config.json', self.layouts.left_layout, self.layouts.right_layout, self.layouts.middle_layout, self.buttons, self.labels, self.progress_bar, self.get_window)
 
 
@@ -57,9 +59,11 @@ class Bar(QWidget):
 
         self.heightGap = config.getint('Bar', 'HeightGap')
         self.widthGap = config.getint('Bar', 'WidthGap')
+        self.bar_position = config.get('Bar', 'BarPosition')
+        self.use_blur = config.getboolean('Bar', 'UseBlur')
+        self.shrink_desktop = config.getboolean('Bar', 'ShrinkDekstop')
 
-        os.system('cls')
-        self.rainbow_text("---------------YOU CAN NOW CLOSE THIS TERMINAL!!---------------")
+
 
     def rainbow_text(self, text):
         console = Console()
@@ -89,19 +93,47 @@ class Bar(QWidget):
     def initUI(self):
         self.setWindowFlags(Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint | Qt.ToolTip)
         screen_width = QApplication.desktop().screenGeometry().width()
+        screen_height = QApplication.desktop().screenGeometry().height()
 
         taskbar_height = self.taskbar_height
         width_gap = self.widthGap
         height_gap = self.heightGap
 
-        self.setGeometry(
-            width_gap,
-            QApplication.desktop().screenGeometry().height() - taskbar_height - height_gap,
-            screen_width - (2 * width_gap),
-            taskbar_height
-        )
+        if self.bar_position == 'top':
+            self.setGeometry(
+                width_gap,
+                height_gap,
+                screen_width - (2 * width_gap),
+                taskbar_height
+            )
+            self.setFixedHeight(taskbar_height)
         
-        self.setFixedHeight(taskbar_height)
+        elif self.bar_position == 'left':
+            self.setGeometry(
+                height_gap,
+                width_gap,
+                taskbar_height,
+                screen_height - (2 * width_gap)
+            )
+            self.setFixedWidth(taskbar_height)
+
+        elif self.bar_position == 'right':
+            self.setGeometry(
+                screen_width - taskbar_height - width_gap,
+                height_gap,
+                taskbar_height,
+                screen_height - (2 * width_gap)
+            )
+            self.setFixedWidth(taskbar_height)
+
+        elif self.bar_position == 'bottom':
+            self.setGeometry(
+                width_gap,
+                QApplication.desktop().screenGeometry().height() - taskbar_height - height_gap,
+                screen_width - (2 * width_gap),
+                taskbar_height
+            )
+            self.setFixedHeight(taskbar_height)
 
 
         if self.taskbar_height_warning:
@@ -114,9 +146,12 @@ class Bar(QWidget):
         self.setStyleSheet(self.css)
 
 
-        self.layouts = Layouts()
+        self.layouts = Layouts(self.bar_position)
 
         self.setLayout(self.layouts.main_layout)
+
+        if self.use_blur:
+            blur(self.winId(), Dark = True, Acrylic = True)
 
 
 
@@ -132,26 +167,23 @@ class Bar(QWidget):
 
 
 
-        self.get_window = ScrollingLabel(self)
+        self.get_window = WindowName(self)
 
 
         self.tooltip_timer = QTimer(self)
-        self.tooltip_timer.timeout.connect(lambda: updateTooltip(self.labels))
+        self.tooltip_timer.timeout.connect(lambda: updateTooltip(self.labels, self.bar_position))
         self.tooltip_timer.setInterval(1000)
 
-        updateBattery(self.progress_bar)
         update_battery = QTimer(self)
         update_battery.timeout.connect(lambda: updateBattery(self.progress_bar))
         self.progress_bar.enterEvent = self.show_tooltip_above_battery
         self.progress_bar.leaveEvent = self.hide_tooltip
         update_battery.start(1000)
 
-        updateSystemInfo(self.labels)
         timer = QTimer(self)
-        timer.timeout.connect(lambda: updateSystemInfo(self.labels))
+        timer.timeout.connect(lambda: updateSystemInfo(self.labels, self.bar_position))
         timer.start(1000)
         
-        updateTime(self.labels, self.display_date_layout, self.display_time_layout)
         time_timer = QTimer(self)
         time_timer.timeout.connect(lambda: updateTime(self.labels, self.display_date_layout, self.display_time_layout))
         time_timer.start(1000)
@@ -163,7 +195,10 @@ class Bar(QWidget):
         self.labels.wifi_icon.enterEvent = self.show_tooltip_above_wifi
         self.labels.wifi_icon.leaveEvent = self.hide_tooltip
         wifi_timer.start(1000)
-        
+
+        os.system('cls')
+        self.rainbow_text("---------------YOU CAN NOW CLOSE THIS TERMINAL!!---------------")        
+
 
         self.labels.sys_info_label.installEventFilter(self)
 
@@ -222,7 +257,7 @@ if __name__ == "__main__":
             sys.exit(0)
         app = QApplication(sys.argv)
         fluxbar = Bar()
-        fluxbar.setWindowTitle("FluxBar")
+        fluxbar.setWindowTitle("WinBar")
         fluxbar.show()
         sys.exit(app.exec_())
 

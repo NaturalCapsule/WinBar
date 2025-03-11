@@ -54,7 +54,7 @@ class Buttons:
         self.trash_button_.clicked.connect(Utils.delete_temp_files)
         self.trash_button_.enterEvent = self.trash_tooltip
         self.trash_button_.leaveEvent = self.hide_tooltip
-
+        # self.trash_button_.
 
         if not self.trash_enabled:
             icon_layout = QHBoxLayout(self.trash_button_)

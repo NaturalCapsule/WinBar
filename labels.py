@@ -1,15 +1,18 @@
 from PyQt5.QtWidgets import QLabel
 from PyQt5.QtSvg import QSvgWidget
+from PyQt5.QtCore import Qt
+
 
 class Labels:
     def __init__(self, css):
         self.sys_info_label = QLabel("Loading...")
+        # self.sys_info_label.setAlignment(Qt.AlignCenter)
         self.sys_info_label.setObjectName('infoLabel')
         self.sys_info_label.setStyleSheet(css)
-        # self.sys_info_label.installEventFilter(self)
 
 
         self.time_label = QLabel("")
+        # self.time_label.setAlignment(Qt.AlignCenter)
         self.time_label.setObjectName('timeLabel')
         self.time_label.setStyleSheet(css)
 

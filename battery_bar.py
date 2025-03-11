@@ -9,5 +9,3 @@ class Battery(QProgressBar):
         self.setFixedSize(40, 18)
         self.setObjectName("Battery")
         self.setStyleSheet(css)
-        # self.progress_bar.setValue()
-        # return self.progress_bar

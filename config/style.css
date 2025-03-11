@@ -305,6 +305,8 @@ QToolTip {
     background-color: #a4d4ae;
     color: white;
     font-weight: bold;
+    border-radius: 10px;
+    margin: 10px;
 }
 
 #SideMenu {

@@ -1,9 +1,10 @@
 import os
+import psutil
+import subprocess
 from PyQt5.QtWidgets import QPushButton
 from PyQt5.QtGui import QIcon
 from configparser import ConfigParser
-import psutil
-import subprocess
+
 
 username = os.getlogin()
 

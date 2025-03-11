@@ -67,7 +67,7 @@ def updateWifiLabel(labels):
         labels.wifi_ico.setText(labels.offline_icon)
         labels.wifi_icon.setToolTip("No Wi-Fi connection")
 
-def updateSystemInfo(labels):
+def updateSystemInfo(labels, position):
     cpu_usage = Utils.get_cpu_usage()
     cpu_temp = Utils.get_cpu_temperature()
     cpu_freq = Utils.get_cpu_freq()
@@ -94,7 +94,10 @@ def updateSystemInfo(labels):
         gpu_text = ""
     gpu_tooltip = f"GPU Temperature: {gpu_temp}°C\nGPU Usage: {gpu_usage}\nGPU VRAM Used: {used_vram} GB / {tot_vram} GB"
 
-    labels.sys_info_label.setText(f"CPU: {cpu_usage}% | RAM: {ram_usage}% {gpu_text}{gpu_usage}")
+    if position == 'right' or position == 'left':
+        labels.sys_info_label.setText("Sys Info")
+    else:
+        labels.sys_info_label.setText(f"CPU: {cpu_usage}% | RAM: {ram_usage}% {gpu_text}{gpu_usage}")
 
 def updateBattery(progress_bar):
     try:
@@ -121,10 +124,10 @@ def updateTime(labels, display_date_layout, display_time_layout):
     today = date.today()
     today = today.strftime(display_date_layout)
     current_time = time.strftime(display_time_layout)
-    labels.time_label.setText(f"{current_time} | {today}")
+    labels.time_label.setText(f"{current_time}{today}")
 
-def updateTooltip(labels):
-    updateSystemInfo(labels)
+def updateTooltip(labels, pos):
+    updateSystemInfo(labels, pos)
     QToolTip.showText(labels.sys_info_label.mapToGlobal(labels.sys_info_label.rect().center()),
                         f"{cpu_tooltip}\n\n{ram_tooltip}\n\n{gpu_tooltip}",
                         labels.sys_info_label)
