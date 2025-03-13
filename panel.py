@@ -23,6 +23,32 @@ from screenshot import take_screenshot, take_shot
 from media import *
 
 
+class MediaWorker(QThread):
+    media_signal = pyqtSignal(str)
+    
+    def __init__(self, parent=None):
+        super().__init__(parent)
+
+    async def fetch_media(self):
+        session_manager = await MediaManager.request_async()
+        current_session = session_manager.get_current_session()
+
+        try:
+            info = await current_session.try_get_media_properties_async()
+            title = info.title
+            artist = info.artist
+            output = f"{title}\n By\n{artist}"
+            return output
+        except Exception:
+            return "No active media session to control."
+
+    def run(self):
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        result = loop.run_until_complete(self.fetch_media())
+        self.media_signal.emit(result)
+
+
 class VoiceCommandThread(QThread):
     command_signal = pyqtSignal(str)
 
@@ -90,7 +116,6 @@ class SidePanel(QWidget):
         self.voice_thread.command_signal.connect(self.execute_command)
         self.voice_thread.start()
 
-
         self.timer = QTimer(self)
         self.timer.timeout.connect(self.check_keys)
         self.timer.start(100)
@@ -117,8 +142,6 @@ class SidePanel(QWidget):
         self.media_icon = self.config.get('Panel', 'mediaIconSize')
         self.media_icon1, self.media_icon2 = self.media_icon.split(', ')[0], self.media_icon.split(', ')[1]
         self.media_icon1, self.media_icon2 = int(self.media_icon1), int(self.media_icon2)
-
-        # print(self.colors[:])
 
         self.weather = Weather()
         self.temp = self.weather.get_temp()
@@ -189,8 +212,14 @@ class SidePanel(QWidget):
         return asyncio.run(fast_forward_action_())
 
     def update_media(self):
-        title = c_session_info()
+        self.worker = MediaWorker()
+        self.worker.media_signal.connect(self.update_media_label)  # Connect signal
+        self.worker.start()
+
+    def update_media_label(self, title):
         self.media_label.setText(title)
+        self.media_label.adjustSize()
+        self.media_label.repaint()
 
     def paintEvent(self, event):
         painter = QPainter(self)
