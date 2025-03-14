@@ -18,6 +18,7 @@ from clipboard import ClipBoard
 from rich.console import Console
 from rich.text import Text
 
+from updates import *
 from date import get_calendar_html
 from screenshot import take_screenshot, take_shot
 from media import *
@@ -85,11 +86,8 @@ class SidePanel(QWidget):
     def __init__(self):
         super().__init__()
 
-        self.config = ConfigParser()
-        self.config.read('config/config.ini')
-        
-        self.panel_color = self.config.get('Panel', 'panelColor')
-        self.colors = self.panel_color.split(',')
+
+        self.load_config()
 
 
         self.setWindowFlags(Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint | Qt.ToolTip)
@@ -112,73 +110,49 @@ class SidePanel(QWidget):
             self.css = f.read()
         self.setStyleSheet(self.css)
 
-        self.voice_thread = VoiceCommandThread()
-        self.voice_thread.command_signal.connect(self.execute_command)
-        self.voice_thread.start()
-
-        self.timer = QTimer(self)
-        self.timer.timeout.connect(self.check_keys)
-        self.timer.start(100)
-
         self.calendar = get_calendar_html()
-
-        self.scale = self.config.get('Panel', 'mediaImageScale')
-        self.scale = self.scale.split(', ')
-        self.x_ = self.scale[0]
-        self.y_ = self.scale[1]
-
-        self.pix_radius = self.config.get('Panel', 'mediaBorderRadius')
-        self.pix_radius = self.pix_radius.split(', ')
-        self.rad1 = self.pix_radius[0]
-        self.rad2 = self.pix_radius[1]
-
-        self.panel_radius = self.config.get('Panel', 'panelBorderRadius')
-        self.panel_rad1, self.panel_rad2 = self.panel_radius.split(', ')[0], self.panel_radius.split(', ')[1]
-
-        self.date_timer = QTimer(self)
-        self.date_timer.timeout.connect(self.update_date)
-        self.date_timer.start(1000)
-
-        self.media_icon = self.config.get('Panel', 'mediaIconSize')
-        self.media_icon1, self.media_icon2 = self.media_icon.split(', ')[0], self.media_icon.split(', ')[1]
-        self.media_icon1, self.media_icon2 = int(self.media_icon1), int(self.media_icon2)
 
         self.weather = Weather()
         self.temp = self.weather.get_temp()
         self.sky = self.weather.get_sky()
 
-        self.screenshot_timer = QTimer(self)
-        self.screenshot_timer.timeout.connect(take_screenshot)
-        self.screenshot_timer.start(100)
-
-        self.media_timer = QTimer(self)
-        self.media_timer.timeout.connect(self.update_media)
-        self.media_timer.start(1000)
-
-        self.image_timer = QTimer(self)
-        self.image_timer.timeout.connect(self.pix)
-        self.image_timer.start(1000)
-
-
-        self.save_timer = QTimer(self)
-        self.save_timer.timeout.connect(get_image)
-        self.save_timer.start(100)
-
-        self.test_timer = QTimer(self)
-        self.test_timer.timeout.connect(self.check_media_session)
-        self.test_timer.start(1000)
-
-        self.temp_timer = QTimer(self)
-        self.temp_timer.timeout.connect(self.update_weather)
-        self.temp_timer.start(10000)
-
-        self.title = c_session_info()
+        self.timers()
 
         self.clipboard = ClipBoard()
-
-
         self.setup_side_panel()
         self.search_bar()
+
+        # keys_timer = QTimer(self)
+        # keys_timer.timeout.connect(lambda: check_keys(self.toggle_side_panel))
+        # keys_timer.start(100)
+
+        # date_timer = QTimer(self)
+        # date_timer.timeout.connect(lambda: update_date(get_calendar_html, self.date_label))
+        # date_timer.start(1000)
+        
+        # screenshot_timer = QTimer(self)
+        # screenshot_timer.timeout.connect(take_screenshot)
+        # screenshot_timer.start(100)
+
+        # media_timer = QTimer(self)
+        # media_timer.timeout.connect(self.update_media)
+        # media_timer.start(1000)
+        
+        # image_timer = QTimer(self)
+        # image_timer.timeout.connect(self.pix)
+        # image_timer.start(1000)
+        
+        # save_timer = QTimer(self)
+        # save_timer.timeout.connect(get_image)
+        # save_timer.start(100)
+
+        # button_timer = QTimer(self)
+        # button_timer.timeout.connect(self.change_button)
+        # button_timer.start(100)
+
+        # temp_timer = QTimer(self)
+        # temp_timer.timeout.connect(lambda: update_weather(Weather, self.temp_label, self.sky_label))
+        # temp_timer.start(10000)
 
         self.animation = QPropertyAnimation(self, b"geometry")
 
@@ -198,6 +172,68 @@ class SidePanel(QWidget):
         
         console.print(styled_text)
 
+    def load_config(self):
+        self.config = ConfigParser()
+        self.config.read('config/config.ini')
+
+        self.panel_color = self.config.get('Panel', 'panelColor')
+        self.colors = self.panel_color.split(',')
+
+        self.scale = self.config.get('Panel', 'mediaImageScale')
+        self.scale = self.scale.split(', ')
+        self.x_ = self.scale[0]
+        self.y_ = self.scale[1]
+
+        self.pix_radius = self.config.get('Panel', 'mediaBorderRadius')
+        self.pix_radius = self.pix_radius.split(', ')
+        self.rad1 = self.pix_radius[0]
+        self.rad2 = self.pix_radius[1]
+
+        self.panel_radius = self.config.get('Panel', 'panelBorderRadius')
+        self.panel_rad1, self.panel_rad2 = self.panel_radius.split(', ')[0], self.panel_radius.split(', ')[1]
+
+        self.media_icon = self.config.get('Panel', 'mediaIconSize')
+        self.media_icon1, self.media_icon2 = self.media_icon.split(', ')[0], self.media_icon.split(', ')[1]
+        self.media_icon1, self.media_icon2 = int(self.media_icon1), int(self.media_icon2)
+
+
+
+    def timers(self):
+        self.voice_thread = VoiceCommandThread()
+        self.voice_thread.command_signal.connect(self.execute_command)
+        self.voice_thread.start()
+
+        keys_timer = QTimer(self)
+        keys_timer.timeout.connect(lambda: check_keys(self.toggle_side_panel))
+        keys_timer.start(100)
+
+        date_timer = QTimer(self)
+        date_timer.timeout.connect(lambda: update_date(get_calendar_html, self.date_label))
+        date_timer.start(1000)
+        
+        screenshot_timer = QTimer(self)
+        screenshot_timer.timeout.connect(take_screenshot)
+        screenshot_timer.start(100)
+
+        media_timer = QTimer(self)
+        media_timer.timeout.connect(self.update_media)
+        media_timer.start(1000)
+        
+        image_timer = QTimer(self)
+        image_timer.timeout.connect(self.pix)
+        image_timer.start(1000)
+        
+        save_timer = QTimer(self)
+        save_timer.timeout.connect(get_image)
+        save_timer.start(100)
+
+        button_timer = QTimer(self)
+        button_timer.timeout.connect(self.change_button)
+        button_timer.start(100)
+
+        temp_timer = QTimer(self)
+        temp_timer.timeout.connect(lambda: update_weather(Weather, self.temp_label, self.sky_label))
+        temp_timer.start(10000)
 
     def rewind_action(self):
         async def rewind_action_():
@@ -213,7 +249,7 @@ class SidePanel(QWidget):
 
     def update_media(self):
         self.worker = MediaWorker()
-        self.worker.media_signal.connect(self.update_media_label)  # Connect signal
+        self.worker.media_signal.connect(self.update_media_label)
         self.worker.start()
 
     def update_media_label(self, title):
@@ -226,7 +262,6 @@ class SidePanel(QWidget):
         painter.setRenderHint(QPainter.Antialiasing)
 
         alpha = max(0, min(int(self.colors[-1]), 255))
-
 
         painter.setBrush(QColor(int(self.colors[0]), int(self.colors[1]), int(self.colors[2]), alpha = alpha))
         painter.drawRoundedRect(self.rect(), int(self.panel_rad1), int(self.panel_rad2))
@@ -246,6 +281,39 @@ class SidePanel(QWidget):
 
         self.animation.setEasingCurve(QEasingCurve.InOutQuad)
         self.animation.start()
+
+    def change_button(self):
+        async def get_session():
+            try:
+                session_manager = await MediaManager.request_async()
+                current_session = session_manager.get_current_session()
+                playback_status = current_session.get_playback_info().playback_status
+                if playback_status == 5:
+                    # self.media_button.setText('󰐌')
+                    self.media_button.setIcon(QIcon("svgs/play.svg"))
+
+
+                else:
+                    # self.media_button.setText('󰏥')
+                    self.media_button.setIcon(QIcon("svgs/pause.svg"))
+            except AttributeError:
+                pass
+
+        pause_play = asyncio.run(get_session())
+        return pause_play
+
+    def play_pause(self):
+        async def get_session():
+            try:
+                session_manager = await MediaManager.request_async()
+                current_session = session_manager.get_current_session()
+
+                return await current_session.try_toggle_play_pause_async()
+            except AttributeError:
+                pass
+
+        pause_play = asyncio.run(get_session())
+        return pause_play
 
     def setup_side_panel(self):
         self.welcome_label = QLabel(f"Hi, {self.username}!", self)
@@ -268,7 +336,7 @@ class SidePanel(QWidget):
         self.date_label.setObjectName("SideDate")
         self.date_label.setStyleSheet(self.css)
 
-        self.media_label = QLabel(self.title, self)
+        self.media_label = QLabel("Checking...", self)
         self.media_label.setObjectName("SideMedia")
         self.media_label.setStyleSheet(self.css)
         self.media_label.setWordWrap(True)
@@ -283,10 +351,9 @@ class SidePanel(QWidget):
         self.media_button.setIcon(QIcon('svgs/play.svg'))
         self.media_button.setObjectName("MediaButton")
         self.media_button.setStyleSheet(self.css)
-        self.media_button.clicked.connect(self.toggle_icon)
+        self.media_button.clicked.connect(self.play_pause)
         self.media_button.setFixedSize(self.media_icon1, self.media_icon2)
         self.media_button.setIconSize(QSize(self.media_icon1, self.media_icon2))
-        self.is_playing = False
 
         self.clipboard_button = QPushButton(self)
         self.clipboard_button.setIcon(QIcon("svgs/clipboard.svg"))
@@ -329,30 +396,6 @@ class SidePanel(QWidget):
         self.load_widget_positions()
         self.apply_widget_positions()
 
-    def toggle_icon(self):
-        if self.is_playing:
-            self.media_button.setIcon(QIcon("svgs/play.svg"))
-        else:
-            self.media_button.setIcon(QIcon("svgs/pause.svg"))
-        self.is_playing = not self.is_playing
-
-        play_pause()
-
-    def check_media_session(self):
-        current_session = c_session_info()
-        
-        if current_session == "No active media session to control.":
-            self.media_button.setIcon(QIcon("svgs/play.svg"))
-            try:
-                self.media_button.clicked.disconnect()
-            except TypeError:
-                pass
-        else:
-            try:
-                self.media_button.clicked.disconnect()
-            except TypeError:
-                pass
-            self.media_button.clicked.connect(self.toggle_icon)
 
     def pix(self):
         path = fr"c:\Users\{self.username}\AppData\Local\Temp\thumbnail.jpg"
@@ -560,19 +603,34 @@ class SidePanel(QWidget):
         elif "take a screenshot" in command:
             take_shot()
 
+    # def update_media(self):
+    #     self.worker = MediaWorker()
+    #     self.worker.media_signal.connect(self.update_media_label)
+    #     self.worker.start()
 
-    def update_date(self):
-        date = get_calendar_html()
-        self.date_label.setText(date)
+    # def update_media_label(self, title):
+    #     self.media_label.setText(title)
+    #     self.media_label.adjustSize()
+    #     self.media_label.repaint()
 
-    def update_weather(self):
-        weather = Weather()
-        self.temp_label.setText(weather.get_temp())
-        self.sky_label.setText(weather.get_sky())
+    # def update_date(self):
+    #     date = get_calendar_html()
+    #     self.date_label.setText(date)
 
-    def check_keys(self):
-        if keyboard.is_pressed('ctrl') and keyboard.is_pressed('y'):
-            self.toggle_side_panel()
+    # def update_weather(self):
+    #     weather = Weather()
+    #     self.temp_label.setText(weather.get_temp())
+    #     self.sky_label.setText(weather.get_sky())
+
+    # def check_keys(self):
+    #     if keyboard.is_pressed('ctrl') and keyboard.is_pressed('y'):
+    #         self.toggle_side_panel()
+
+    # def closeEvent(self, event):
+    #     if hasattr(self, 'worker') and self.worker.isRunning():
+    #         self.worker.quit()
+    #         self.worker.wait()  # Ensures it fully stops before exiting
+    #     event.accept()
 
     def toggle_side_panel(self):
         if self.x() < 0:

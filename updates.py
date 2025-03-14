@@ -1,16 +1,12 @@
 from utils import Utils
 from nvidia import Nvidia
 from wifi import ConnectedToWifi
-from labels import Labels
 import psutil
-from battery_bar import Battery
 from datetime import date
 import time
 from PyQt5.QtWidgets import QToolTip
+import keyboard
 
-# progress_bar = Battery(css = None)
-
-# labels = Labels(css = None)
 
 cpu_tooltip = ''
 gpu_tooltip = ''
@@ -131,3 +127,28 @@ def updateTooltip(labels, pos):
     QToolTip.showText(labels.sys_info_label.mapToGlobal(labels.sys_info_label.rect().center()),
                         f"{cpu_tooltip}\n\n{ram_tooltip}\n\n{gpu_tooltip}",
                         labels.sys_info_label)
+
+
+
+# def update_media_label(title, media_label):
+#     media_label.setText(title)
+#     media_label.adjustSize()
+#     media_label.repaint()
+
+# def update_media(MediaWorker):
+#     worker = MediaWorker()
+#     worker.media_signal.connect(update_media_label)
+#     worker.start()
+
+def update_date(get_calendar_html, date_label):
+    date = get_calendar_html()
+    date_label.setText(date)
+
+def update_weather(Weather, temp_label, sky_label):
+    weather = Weather()
+    temp_label.setText(weather.get_temp())
+    sky_label.setText(weather.get_sky())
+
+def check_keys(toggle_side_panel):
+    if keyboard.is_pressed('ctrl') and keyboard.is_pressed('y'):
+        toggle_side_panel()
