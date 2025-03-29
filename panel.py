@@ -7,7 +7,7 @@ import speech_recognition as sr
 import asyncio
 from PyQt5.QtCore import  Qt, QTimer, QPropertyAnimation, QThread, pyqtSignal, QTimer, QRect, QEasingCurve, QPoint, QSize
 from PyQt5.QtGui import QColor, QPainter, QRegion, QIcon, QPixmap
-from PyQt5.QtWidgets import  QApplication, QWidget, QLabel, QPushButton, QMenu, QAction, QLineEdit
+from PyQt5.QtWidgets import QGraphicsBlurEffect, QApplication, QWidget, QLabel, QPushButton, QMenu, QAction, QLineEdit
 from weather import Weather
 from windows_modes import Modes
 from configparser import ConfigParser
@@ -21,6 +21,7 @@ from rich.text import Text
 from updates import *
 from date import get_calendar_html
 from screenshot import take_screenshot, take_shot
+from widgets import load_panel_widgets_from_json
 from media import *
 
 
@@ -89,7 +90,6 @@ class SidePanel(QWidget):
 
         self.load_config()
 
-
         self.setWindowFlags(Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint | Qt.ToolTip)
         self.username = os.getlogin()
 
@@ -120,39 +120,9 @@ class SidePanel(QWidget):
 
         self.clipboard = ClipBoard()
         self.setup_side_panel()
+        load_panel_widgets_from_json('config/config.json', self)
         self.search_bar()
 
-        # keys_timer = QTimer(self)
-        # keys_timer.timeout.connect(lambda: check_keys(self.toggle_side_panel))
-        # keys_timer.start(100)
-
-        # date_timer = QTimer(self)
-        # date_timer.timeout.connect(lambda: update_date(get_calendar_html, self.date_label))
-        # date_timer.start(1000)
-        
-        # screenshot_timer = QTimer(self)
-        # screenshot_timer.timeout.connect(take_screenshot)
-        # screenshot_timer.start(100)
-
-        # media_timer = QTimer(self)
-        # media_timer.timeout.connect(self.update_media)
-        # media_timer.start(1000)
-        
-        # image_timer = QTimer(self)
-        # image_timer.timeout.connect(self.pix)
-        # image_timer.start(1000)
-        
-        # save_timer = QTimer(self)
-        # save_timer.timeout.connect(get_image)
-        # save_timer.start(100)
-
-        # button_timer = QTimer(self)
-        # button_timer.timeout.connect(self.change_button)
-        # button_timer.start(100)
-
-        # temp_timer = QTimer(self)
-        # temp_timer.timeout.connect(lambda: update_weather(Weather, self.temp_label, self.sky_label))
-        # temp_timer.start(10000)
 
         self.animation = QPropertyAnimation(self, b"geometry")
 
@@ -178,11 +148,6 @@ class SidePanel(QWidget):
 
         self.panel_color = self.config.get('Panel', 'panelColor')
         self.colors = self.panel_color.split(',')
-
-        self.scale = self.config.get('Panel', 'mediaImageScale')
-        self.scale = self.scale.split(', ')
-        self.x_ = self.scale[0]
-        self.y_ = self.scale[1]
 
         self.pix_radius = self.config.get('Panel', 'mediaBorderRadius')
         self.pix_radius = self.pix_radius.split(', ')
@@ -222,7 +187,11 @@ class SidePanel(QWidget):
         image_timer = QTimer(self)
         image_timer.timeout.connect(self.pix)
         image_timer.start(1000)
-        
+
+        image_timer2 = QTimer(self)
+        image_timer2.timeout.connect(self.pix_)
+        image_timer2.start(1000)
+
         save_timer = QTimer(self)
         save_timer.timeout.connect(get_image)
         save_timer.start(100)
@@ -289,12 +258,9 @@ class SidePanel(QWidget):
                 current_session = session_manager.get_current_session()
                 playback_status = current_session.get_playback_info().playback_status
                 if playback_status == 5:
-                    # self.media_button.setText('󰐌')
                     self.media_button.setIcon(QIcon("svgs/play.svg"))
 
-
                 else:
-                    # self.media_button.setText('󰏥')
                     self.media_button.setIcon(QIcon("svgs/pause.svg"))
             except AttributeError:
                 pass
@@ -316,85 +282,98 @@ class SidePanel(QWidget):
         return pause_play
 
     def setup_side_panel(self):
-        self.welcome_label = QLabel(f"Hi, {self.username}!", self)
-        self.welcome_label.setObjectName("SideWelcome")
-        self.welcome_label.setStyleSheet(self.css)
+        try:
+            self.welcome_label = QLabel(f"Hi, {self.username}!", self)
+            self.welcome_label.setObjectName("SideWelcome")
+            self.welcome_label.setStyleSheet(self.css)
 
-        self.city_label = QLabel(f"Your Current City: {self.weather.get_city()}", self)
-        self.city_label.setObjectName("SideCity")
-        self.city_label.setStyleSheet(self.css)
+            self.city_label = QLabel(f"Your Current City: {self.weather.get_city()}", self)
+            self.city_label.setObjectName("SideCity")
+            self.city_label.setStyleSheet(self.css)
 
-        self.sky_label = QLabel(self.sky, self)
-        self.sky_label.setObjectName("SideSky")
-        self.sky_label.setStyleSheet(self.css)
+            self.sky_label = QLabel(self.sky, self)
+            self.sky_label.setObjectName("SideSky")
+            self.sky_label.setStyleSheet(self.css)
 
-        self.temp_label = QLabel(self.temp, self)
-        self.temp_label.setObjectName("SideTemp")
-        self.temp_label.setStyleSheet(self.css)
+            self.temp_label = QLabel(self.temp, self)
+            self.temp_label.setObjectName("SideTemp")
+            self.temp_label.setStyleSheet(self.css)
 
-        self.date_label = QLabel(self.calendar, self)
-        self.date_label.setObjectName("SideDate")
-        self.date_label.setStyleSheet(self.css)
+            self.date_label = QLabel(self.calendar, self)
+            self.date_label.setObjectName("SideDate")
+            self.date_label.setStyleSheet(self.css)
 
-        self.media_label = QLabel("Checking...", self)
-        self.media_label.setObjectName("SideMedia")
-        self.media_label.setStyleSheet(self.css)
-        self.media_label.setWordWrap(True)
+            self.media_label = QLabel("Checking...", self)
+            self.media_label.setObjectName("SideMedia")
+            self.media_label.setStyleSheet(self.css)
+            self.media_label.setWordWrap(True)
 
-        self.media_image = QLabel(self)
-        self.media_image.setPixmap(self.pix())
-        self.media_image.setScaledContents(True)
-        self.media_image.setFixedSize(int(self.x_), int(self.y_))
-        self.media_image.setAlignment(Qt.AlignCenter)
+            self.media_image = QLabel(self)
+            self.media_image.setPixmap(self.pix())
+            self.media_image.setScaledContents(True)
+            self.media_image.setFixedSize(self.panel_width - 30, int(self.screen_height * 0.2))
+            self.blur_image = QGraphicsBlurEffect()
+            self.blur_image.setBlurRadius(15)
+            self.media_image.setGraphicsEffect(self.blur_image)
+            
+            self.media_image2 = QLabel(self)
+            self.media_image2.setPixmap(self.pix_())
+            self.media_image2.setScaledContents(True)
+            self.media_image2.setFixedSize(250, 150)
+            x, y = self.move_widget([0.35, .52])
+            self.media_image2.move(x, y)
 
-        self.media_button = QPushButton(self)
-        self.media_button.setIcon(QIcon('svgs/play.svg'))
-        self.media_button.setObjectName("MediaButton")
-        self.media_button.setStyleSheet(self.css)
-        self.media_button.clicked.connect(self.play_pause)
-        self.media_button.setFixedSize(self.media_icon1, self.media_icon2)
-        self.media_button.setIconSize(QSize(self.media_icon1, self.media_icon2))
 
-        self.clipboard_button = QPushButton(self)
-        self.clipboard_button.setIcon(QIcon("svgs/clipboard.svg"))
-        self.clipboard_button.clicked.connect(self.clip_board)
-        self.clipboard_button.setObjectName("ClipButton")
-        self.clipboard_button.setStyleSheet(self.css)
+            self.media_button = QPushButton(self)
+            self.media_button.setIcon(QIcon('svgs/play.svg'))
+            self.media_button.setObjectName("MediaButton")
+            self.media_button.setStyleSheet(self.css)
+            self.media_button.clicked.connect(self.play_pause)
+            self.media_button.setFixedSize(self.media_icon1, self.media_icon2)
+            self.media_button.setIconSize(QSize(self.media_icon1, self.media_icon2))
 
-        self.mini_game = QPushButton(self)
-        self.mini_game.setIcon(QIcon("svgs/rocket.svg"))
-        self.mini_game.clicked.connect(self.run_miniGame)
-        self.mini_game.setObjectName("MiniGameButton")
-        self.mini_game.setStyleSheet(self.css)
+            self.clipboard_button = QPushButton(self)
+            self.clipboard_button.setIcon(QIcon("svgs/clipboard.svg"))
+            self.clipboard_button.clicked.connect(self.clip_board)
+            self.clipboard_button.setObjectName("ClipButton")
+            self.clipboard_button.setStyleSheet(self.css)
 
-        self.menu_button = QPushButton("Performance", self)
-        self.menu_button.clicked.connect(self.menu)
-        self.menu_button.setObjectName("PerformanceButton")
-        self.menu_button.setStyleSheet(self.css)
+            self.mini_game = QPushButton(self)
+            self.mini_game.setIcon(QIcon("svgs/rocket.svg"))
+            self.mini_game.clicked.connect(self.run_miniGame)
+            self.mini_game.setObjectName("MiniGameButton")
+            self.mini_game.setStyleSheet(self.css)
 
-        self.close_button = QPushButton("Close Panel", self)
-        self.close_button.clicked.connect(self.closePanel_button)
-        self.close_button.setObjectName("CloseButton")
-        self.close_button.setStyleSheet(self.css)
+            self.menu_button = QPushButton("Performance", self)
+            self.menu_button.clicked.connect(self.menu)
+            self.menu_button.setObjectName("PerformanceButton")
+            self.menu_button.setStyleSheet(self.css)
 
-        self.forward_button = QPushButton("", self)
-        self.forward_button.setIcon(QIcon('svgs/fast-forward.svg'))
-        self.forward_button.clicked.connect(self.fast_forward_action)
-        self.forward_button.setObjectName('forwardButton')
-        self.forward_button.setStyleSheet(self.css)
-        self.forward_button.setFixedSize(self.media_icon1, self.media_icon2)
-        self.forward_button.setIconSize(QSize(self.media_icon1, self.media_icon2))
+            self.close_button = QPushButton("Close Panel", self)
+            self.close_button.clicked.connect(self.closePanel_button)
+            self.close_button.setObjectName("CloseButton")
+            self.close_button.setStyleSheet(self.css)
 
-        self.rewind_button = QPushButton("", self)
-        self.rewind_button.setIcon(QIcon('svgs/rewind.svg'))
-        self.rewind_button.clicked.connect(self.rewind_action)
-        self.rewind_button.setObjectName('rewindButton')
-        self.rewind_button.setStyleSheet(self.css)
-        self.rewind_button.setFixedSize(self.media_icon1, self.media_icon2)
-        self.rewind_button.setIconSize(QSize(self.media_icon1, self.media_icon2))
+            self.forward_button = QPushButton("", self)
+            self.forward_button.setIcon(QIcon('svgs/fast-forward.svg'))
+            self.forward_button.clicked.connect(self.fast_forward_action)
+            self.forward_button.setObjectName('forwardButton')
+            self.forward_button.setStyleSheet(self.css)
+            self.forward_button.setFixedSize(self.media_icon1, self.media_icon2)
+            self.forward_button.setIconSize(QSize(self.media_icon1, self.media_icon2))
 
-        self.load_widget_positions()
-        self.apply_widget_positions()
+            self.rewind_button = QPushButton("", self)
+            self.rewind_button.setIcon(QIcon('svgs/rewind.svg'))
+            self.rewind_button.clicked.connect(self.rewind_action)
+            self.rewind_button.setObjectName('rewindButton')
+            self.rewind_button.setStyleSheet(self.css)
+            self.rewind_button.setFixedSize(self.media_icon1, self.media_icon2)
+            self.rewind_button.setIconSize(QSize(self.media_icon1, self.media_icon2))
+
+            self.load_widget_positions()
+            self.apply_widget_positions()
+        except Exception as e:
+            print(e)
 
 
     def pix(self):
@@ -406,9 +385,10 @@ class SidePanel(QWidget):
         pixmap = QPixmap(path)
         if pixmap.isNull():
             print("Pixmap is null!")
-            # return
+            return
 
-        pixmap = pixmap.scaled(250, 100, Qt.KeepAspectRatioByExpanding, Qt.SmoothTransformation)
+        pixmap = pixmap.scaled(self.panel_width - 30, int(self.screen_height * 0.2), Qt.KeepAspectRatioByExpanding, Qt.SmoothTransformation)
+        # pixmap = pixmap.scaled(250, 100, Qt.KeepAspectRatioByExpanding, Qt.SmoothTransformation)
 
         mask = QPixmap(pixmap.size())
         mask.fill(Qt.transparent)
@@ -427,6 +407,7 @@ class SidePanel(QWidget):
         current_session = c_session_info()
         if current_session != "No active media session to control.":
             self.media_image.setPixmap(pixmap)
+            # self.media_image2.setPixmap(pixmap)
         else:
             blank_pixmap = QPixmap(self.media_image.size())
             if blank_pixmap.isNull() or blank_pixmap.size().isEmpty():
@@ -441,10 +422,58 @@ class SidePanel(QWidget):
                 painter.end()
 
             self.media_image.setPixmap(blank_pixmap)
+            # self.media_image2.setPixmap(blank_pixmap)
 
         return pixmap
 
-        
+    def pix_(self):
+        path = fr"c:\Users\{self.username}\AppData\Local\Temp\thumbnail.jpg"
+        if not os.path.exists(path):
+            print(f"File not found: {path}")
+            return
+
+        pixmap = QPixmap(path)
+        if pixmap.isNull():
+            print("Pixmap is null!")
+            return
+
+        pixmap = pixmap.scaled(250, 150, Qt.KeepAspectRatioByExpanding, Qt.SmoothTransformation)
+        # pixmap = pixmap.scaled(250, 100, Qt.KeepAspectRatioByExpanding, Qt.SmoothTransformation)
+
+        mask = QPixmap(pixmap.size())
+        mask.fill(Qt.transparent)
+
+        painter = QPainter(mask)
+        if painter.isActive():
+            painter.setRenderHint(QPainter.Antialiasing)
+            painter.setBrush(Qt.white)
+            painter.setPen(Qt.transparent)
+            rect = QRect(0, 0, pixmap.width(), pixmap.height())
+            painter.drawRoundedRect(rect, int(self.rad1), int(self.rad2))
+            painter.end()
+
+        pixmap.setMask(mask.createHeuristicMask())
+
+        current_session = c_session_info()
+        if current_session != "No active media session to control.":
+            self.media_image2.setPixmap(pixmap)
+        else:
+            blank_pixmap = QPixmap(self.media_image2.size())
+            if blank_pixmap.isNull() or blank_pixmap.size().isEmpty():
+                print("Invalid media_image size")
+                return
+            
+            blank_pixmap.fill(Qt.transparent)
+            painter = QPainter(blank_pixmap)
+            if painter.isActive():
+                painter.setPen(QColor("gray"))
+                painter.drawText(blank_pixmap.rect(), Qt.AlignCenter, "No Media")
+                painter.end()
+
+            self.media_image2.setPixmap(blank_pixmap)
+
+        return pixmap
+
     def clip_board(self):
         self.clipboard.toggle_side_clipboard()
 
@@ -553,6 +582,11 @@ class SidePanel(QWidget):
             else:
                 print(f"Widget '{widget_name}' not found")
 
+    def move_widget(self, position):
+        x = int(self.width() * position[0])
+        y = int(self.height() * position[1])
+        return x, y
+
     def exit_function(self):
         while True:
             if Exit.exit():
@@ -602,35 +636,6 @@ class SidePanel(QWidget):
 
         elif "take a screenshot" in command:
             take_shot()
-
-    # def update_media(self):
-    #     self.worker = MediaWorker()
-    #     self.worker.media_signal.connect(self.update_media_label)
-    #     self.worker.start()
-
-    # def update_media_label(self, title):
-    #     self.media_label.setText(title)
-    #     self.media_label.adjustSize()
-    #     self.media_label.repaint()
-
-    # def update_date(self):
-    #     date = get_calendar_html()
-    #     self.date_label.setText(date)
-
-    # def update_weather(self):
-    #     weather = Weather()
-    #     self.temp_label.setText(weather.get_temp())
-    #     self.sky_label.setText(weather.get_sky())
-
-    # def check_keys(self):
-    #     if keyboard.is_pressed('ctrl') and keyboard.is_pressed('y'):
-    #         self.toggle_side_panel()
-
-    # def closeEvent(self, event):
-    #     if hasattr(self, 'worker') and self.worker.isRunning():
-    #         self.worker.quit()
-    #         self.worker.wait()  # Ensures it fully stops before exiting
-    #     event.accept()
 
     def toggle_side_panel(self):
         if self.x() < 0:

@@ -21,7 +21,7 @@ from rich.text import Text
 from battery_bar import Battery
 from updates import *
 from shrink_desktop import register_as_taskbar
-from widgets import load_widgets_from_json
+from widgets import load_bar_widgets_from_json
 from BlurWindow.blurWindow import blur
 
 class Bar(QWidget):
@@ -31,7 +31,7 @@ class Bar(QWidget):
         self.initUI()
         if self.shrink_desktop:
             register_as_taskbar(QApplication, self.taskbar_height, self.widthGap, self.winId, self.bar_position)
-        load_widgets_from_json('config/config.json', self.layouts.left_layout, self.layouts.right_layout, self.layouts.middle_layout, self.buttons, self.labels, self.progress_bar, self.get_window)
+        load_bar_widgets_from_json('config/config.json', self.layouts.left_layout, self.layouts.right_layout, self.layouts.middle_layout, self.buttons, self.labels, self.progress_bar, self.get_window)
 
 
         subprocess.Popen(["python", "panel.py"])
@@ -153,8 +153,6 @@ class Bar(QWidget):
         if self.use_blur:
             blur(self.winId(), Dark = True, Acrylic = True)
 
-
-
         self.buttons = Buttons(css = self.css, trash_tooltip = self.show_tooltip_above_trash, hide_tooltip = self.hide_tooltip, launch_laucher = self.launch_laucher)
         self.buttons.menu_button()
 
@@ -164,8 +162,6 @@ class Bar(QWidget):
         self.labels = Labels(self.css)
 
         self.progress_bar = Battery(css = self.css)
-
-
 
         self.get_window = WindowName(self)
 
@@ -252,9 +248,9 @@ class Bar(QWidget):
 
 if __name__ == "__main__":
     try:
-        if not pyuac.isUserAdmin():
-            elevate.elevate(show_console = False)
-            sys.exit(0)
+        # if not pyuac.isUserAdmin():
+        #     elevate.elevate(show_console = False)
+        #     sys.exit(0)
         app = QApplication(sys.argv)
         fluxbar = Bar()
         fluxbar.setWindowTitle("WinBar")

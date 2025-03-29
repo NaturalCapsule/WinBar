@@ -8,12 +8,12 @@ import subprocess
 def cmd(command):
     subprocess.Popen(command, shell=True)
 
-def load_widgets_from_json(file_path, left_layout, right_layout, middle_layout, buttons, labels, progress_bar, get_window):
+def load_bar_widgets_from_json(file_path, left_layout, right_layout, middle_layout, buttons, labels, progress_bar, get_window):
     try:
         with open(file_path, "r") as file:
             widgets = json.load(file)
 
-            for widget in widgets['widgets']:
+            for widget in widgets['bar widgets']:
                 layout_target = widget.get("layout", "SELECT A LAYOUT")
                 widget_item = None
 
@@ -156,7 +156,7 @@ def load_widgets_from_json(file_path, left_layout, right_layout, middle_layout, 
 
         docks = DockApp().dock_buttons
 
-        for widget in widgets['widgets']:
+        for widget in widgets['bar widgets']:
             if widget.get('docks') == "show docks":
                 for dock_button in docks:
                     layout_target = widget['layout']
@@ -169,3 +169,28 @@ def load_widgets_from_json(file_path, left_layout, right_layout, middle_layout, 
                         middle_layout.addWidget(dock_button)
     except Exception as e:
         print("Error Loading Widget", e)
+
+def load_panel_widgets_from_json(file_path, parent):
+    try:
+        with open(file_path, "r") as file:
+            widgets = json.load(file)
+
+            for widget in widgets['panel widgets']:
+                # widget_item = None
+            
+                if "type" in widget:
+                    if widget["type"] == "button":
+                        button = QPushButton(parent = parent, text = widget['text'])
+                        button.setObjectName(widget['name'])
+                        if 'action' in widget:
+                            button.clicked.connect(partial(cmd, widget["action"]))
+                        button.move(int(widget['x']), int(widget['y']))
+
+                    elif widget['type'] == 'label':
+                        label = QLabel(parent = parent, text = widget['text'])
+                        label.setObjectName(widget['name'])
+                        label.move(int(widget['x']), int(widget['y']))
+
+
+    except Exception as e:
+        print("Error:", e)
