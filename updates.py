@@ -148,7 +148,7 @@ def update_weather(Weather, temp_label, sky_label):
     weather = Weather()
     temp_label.setText(weather.get_temp())
     sky_label.setText(weather.get_sky())
-
+    
 def check_keys(toggle_side_panel):
     if keyboard.is_pressed('ctrl') and keyboard.is_pressed('y'):
         toggle_side_panel()

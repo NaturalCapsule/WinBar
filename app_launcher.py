@@ -21,7 +21,7 @@ class AppSearch(QWidget):
             css = f.read()
 
         self.search_bar = QLineEdit(self)
-        self.search_bar.setObjectName('WinBar')
+        self.search_bar.setObjectName('searchBar')
         self.search_bar.setStyleSheet(css)
         self.search_bar.setPlaceholderText("Search for an app...")
         self.search_bar.textChanged.connect(self.filter_results)

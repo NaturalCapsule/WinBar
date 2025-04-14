@@ -86,50 +86,50 @@
             "text": "Example label 2"
         },
         {
-            "docks": "show docks",
+            "docks": "true",
             "layout": "middle",
             "icon": ""
         },
         {
-            "wifi": "show wifi",
+            "wifi": "true",
             "layout": "right",
             "onlineIcon": "",
             "offlineIcon": ""
 
         },
         {
-            "battery": "show battery",
+            "battery": "true",
             "layout": "right",
             "icon": ""
         },
         {
-            "time": "show time",
+            "time": "true",
             "layout": "right",
             "icon": ""
         },
         {
-            "system info": "show system info",
+            "system info": "true",
             "layout": "left",
             "icon": ""
         },
         {
-            "trash": "show trash",
+            "trash": "true",
             "layout": "left",
             "icon": ""
         },
         {
-            "menu": "show Menu",
+            "menu": "true",
             "layout": "left",
             "icon": ""
         },
 
         {
-            "launcher": "show launcher",
+            "launcher": "true",
             "layout": "left",
             "icon": ""
         },
         {
-            "window title": "show window title",
+            "window title": "true",
             "layout": "left"
         }
 

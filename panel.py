@@ -1,5 +1,4 @@
 import os
-import keyboard
 import time
 import configparser
 import subprocess
@@ -27,6 +26,7 @@ from media import *
 
 class MediaWorker(QThread):
     media_signal = pyqtSignal(str)
+    thumbnail_ready_signal = pyqtSignal()
     
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -86,29 +86,12 @@ username = os.getlogin()
 class SidePanel(QWidget):
     def __init__(self):
         super().__init__()
-
+        self.video_title = ''
 
         self.load_config()
+        self.SetupUI()
 
-        self.setWindowFlags(Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint | Qt.ToolTip)
-        self.username = os.getlogin()
 
-        screen = QApplication.primaryScreen().availableGeometry()
-        self.screen_width = screen.width()
-        self.screen_height = screen.height()
-        self.panel_width = int(self.screen_width * 0.3)
-
-        self.setGeometry(-self.panel_width, 0, self.panel_width, self.screen_height)
-
-        self.setAttribute(Qt.WA_TranslucentBackground)
-
-        self.setMask(QRegion(self.rect(), QRegion.Rectangle))
-
-        self.setObjectName("SidePanel")
-
-        with open('config/style.css', 'r') as f:
-            self.css = f.read()
-        self.setStyleSheet(self.css)
 
         self.calendar = get_calendar_html()
 
@@ -128,6 +111,28 @@ class SidePanel(QWidget):
 
         os.system('cls')
         self.rainbow_text("---------------YOU CAN NOW CLOSE THIS TERMINAL!!---------------")
+
+
+
+    def SetupUI(self):
+        self.setWindowFlags(Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint | Qt.ToolTip)
+        self.username = os.getlogin()
+
+        screen = QApplication.primaryScreen().availableGeometry()
+        self.screen_width = screen.width()
+        self.screen_height = screen.height()
+        self.panel_width = int(self.screen_width * 0.3)
+
+        self.setGeometry(-self.panel_width, 0, self.panel_width, self.screen_height)
+
+        self.setAttribute(Qt.WA_TranslucentBackground)
+
+        self.setMask(QRegion(self.rect(), QRegion.Rectangle))
+
+        self.setObjectName("SidePanel")
+        with open('config/style.css', 'r') as f:
+            self.css = f.read()
+        self.setStyleSheet(self.css)
 
         self.monitor_exit_thread = Thread(target=self.exit_function, daemon=True)
         self.monitor_exit_thread.start()
@@ -161,6 +166,25 @@ class SidePanel(QWidget):
         self.media_icon1, self.media_icon2 = self.media_icon.split(', ')[0], self.media_icon.split(', ')[1]
         self.media_icon1, self.media_icon2 = int(self.media_icon1), int(self.media_icon2)
 
+        date__ = self.config.get('WidgetPositions', 'date_label')
+        self.x_date = date__.split(', ')[0]
+        self.y_date = date__.split(', ')[1]
+
+        welcome__ = self.config.get('WidgetPositions', 'welcome_label')
+        self.x_welcome = welcome__.split(', ')[0]
+        self.y_welcome = welcome__.split(', ')[1]
+
+        sky__ = self.config.get('WidgetPositions', 'sky_label')
+        self.x_sky = sky__.split(', ')[0]
+        self.y_sky = sky__.split(', ')[1]
+
+        image__ = self.config.get('WidgetPositions', 'media_image')
+        self.x_image = image__.split(', ')[0]
+        self.y_image = image__.split(', ')[1]
+
+        temp__ = self.config.get('WidgetPositions', 'temp_label')
+        self.x_temp = temp__.split(', ')[0]
+        self.y_temp = temp__.split(', ')[1]
 
 
     def timers(self):
@@ -172,37 +196,50 @@ class SidePanel(QWidget):
         keys_timer.timeout.connect(lambda: check_keys(self.toggle_side_panel))
         keys_timer.start(100)
 
-        date_timer = QTimer(self)
-        date_timer.timeout.connect(lambda: update_date(get_calendar_html, self.date_label))
-        date_timer.start(1000)
+
+        self.date_timer = QTimer(self)
+        self.date_timer.timeout.connect(lambda: update_date(get_calendar_html, self.date_label))
         
         screenshot_timer = QTimer(self)
         screenshot_timer.timeout.connect(take_screenshot)
         screenshot_timer.start(100)
 
-        media_timer = QTimer(self)
-        media_timer.timeout.connect(self.update_media)
-        media_timer.start(1000)
+
+        self.worker = MediaWorker()
+        self.worker.media_signal.connect(self.update_media_label)
+        self.worker.thumbnail_ready_signal.connect(self.pix)
+        self.worker.thumbnail_ready_signal.connect(self.pix_)
+
+
+        self.button_timer = QTimer(self)
+        self.button_timer.timeout.connect(self.change_button)
+
+        # self.runTimers()
+        self.run_timer = QTimer()
+        self.run_timer.timeout.connect(self.runTimers)
+        self.run_timer.start(500)
         
-        image_timer = QTimer(self)
-        image_timer.timeout.connect(self.pix)
-        image_timer.start(1000)
+        if not float(self.x_temp) >= 1.0 and not float(self.y_temp) >= 1.0:
+            temp_timer = QTimer(self)
+            temp_timer.timeout.connect(lambda: update_weather(Weather, self.temp_label, self.sky_label))
+            temp_timer.start(10000)
 
-        image_timer2 = QTimer(self)
-        image_timer2.timeout.connect(self.pix_)
-        image_timer2.start(1000)
+    def runTimers(self):
+        title_ = c_session_info()
 
-        save_timer = QTimer(self)
-        save_timer.timeout.connect(get_image)
-        save_timer.start(100)
+        if not float(self.x_image) >= 1.0 and not float(self.y_image) >= 1.0:
+            if title_ != self.video_title:
+                self.worker.start()
+                self.pix()
+                self.pix_()
+                get_image(self.worker)
 
-        button_timer = QTimer(self)
-        button_timer.timeout.connect(self.change_button)
-        button_timer.start(100)
+            self.button_timer.start(400)
+            self.video_title = title_
 
-        temp_timer = QTimer(self)
-        temp_timer.timeout.connect(lambda: update_weather(Weather, self.temp_label, self.sky_label))
-        temp_timer.start(10000)
+        if not float(self.x_date) >= 1.0 and not float(self.y_date) >= 1.0:
+            self.date_timer.start()
+
 
     def rewind_action(self):
         async def rewind_action_():
@@ -215,11 +252,6 @@ class SidePanel(QWidget):
             await fast_forward()
 
         return asyncio.run(fast_forward_action_())
-
-    def update_media(self):
-        self.worker = MediaWorker()
-        self.worker.media_signal.connect(self.update_media_label)
-        self.worker.start()
 
     def update_media_label(self, title):
         self.media_label.setText(title)
@@ -275,7 +307,7 @@ class SidePanel(QWidget):
                 current_session = session_manager.get_current_session()
 
                 return await current_session.try_toggle_play_pause_async()
-            except AttributeError:
+            except (AttributeError, RuntimeError):
                 pass
 
         pause_play = asyncio.run(get_session())
@@ -388,7 +420,6 @@ class SidePanel(QWidget):
             return
 
         pixmap = pixmap.scaled(self.panel_width - 30, int(self.screen_height * 0.2), Qt.KeepAspectRatioByExpanding, Qt.SmoothTransformation)
-        # pixmap = pixmap.scaled(250, 100, Qt.KeepAspectRatioByExpanding, Qt.SmoothTransformation)
 
         mask = QPixmap(pixmap.size())
         mask.fill(Qt.transparent)
@@ -407,7 +438,6 @@ class SidePanel(QWidget):
         current_session = c_session_info()
         if current_session != "No active media session to control.":
             self.media_image.setPixmap(pixmap)
-            # self.media_image2.setPixmap(pixmap)
         else:
             blank_pixmap = QPixmap(self.media_image.size())
             if blank_pixmap.isNull() or blank_pixmap.size().isEmpty():
@@ -422,7 +452,6 @@ class SidePanel(QWidget):
                 painter.end()
 
             self.media_image.setPixmap(blank_pixmap)
-            # self.media_image2.setPixmap(blank_pixmap)
 
         return pixmap
 
@@ -438,7 +467,6 @@ class SidePanel(QWidget):
             return
 
         pixmap = pixmap.scaled(250, 150, Qt.KeepAspectRatioByExpanding, Qt.SmoothTransformation)
-        # pixmap = pixmap.scaled(250, 100, Qt.KeepAspectRatioByExpanding, Qt.SmoothTransformation)
 
         mask = QPixmap(pixmap.size())
         mask.fill(Qt.transparent)
@@ -646,10 +674,11 @@ class SidePanel(QWidget):
 
 
 def run_loop():
+    QApplication.setAttribute(Qt.AA_UseDesktopOpenGL)
     app = QApplication([])
 
     _side = SidePanel()
-    _side.setWindowTitle("WinBar")
+    _side.setWindowTitle("WinPanel")
     
     Thread(target=start_asyncio_loop, args=(_side,), daemon=True).start()
 

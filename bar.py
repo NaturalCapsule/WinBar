@@ -6,6 +6,7 @@ import pyuac
 import elevate
 import configparser
 import subprocess
+import json
 from PyQt5.QtGui import QColor, QPainter
 from PyQt5.QtWidgets import QApplication, QWidget, QToolTip
 from PyQt5.QtCore import Qt, QTimer, QEvent, QPoint
@@ -91,6 +92,134 @@ class Bar(QWidget):
             time.sleep(0.1) 
     
     def initUI(self):
+        self.layouts = Layouts(self.bar_position)
+        self.SetupUI()
+        # self.setWindowFlags(Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint | Qt.ToolTip)
+        # screen_width = QApplication.desktop().screenGeometry().width()
+        # screen_height = QApplication.desktop().screenGeometry().height()
+
+        # taskbar_height = self.taskbar_height
+        # width_gap = self.widthGap
+        # height_gap = self.heightGap
+
+        # if self.bar_position == 'top':
+        #     self.setGeometry(
+        #         width_gap,
+        #         height_gap,
+        #         screen_width - (2 * width_gap),
+        #         taskbar_height
+        #     )
+        #     self.setFixedHeight(taskbar_height)
+        
+        # elif self.bar_position == 'left':
+        #     self.setGeometry(
+        #         height_gap,
+        #         width_gap,
+        #         taskbar_height,
+        #         screen_height - (2 * width_gap)
+        #     )
+        #     self.setFixedWidth(taskbar_height)
+
+        # elif self.bar_position == 'right':
+        #     self.setGeometry(
+        #         screen_width - taskbar_height - width_gap,
+        #         height_gap,
+        #         taskbar_height,
+        #         screen_height - (2 * width_gap)
+        #     )
+        #     self.setFixedWidth(taskbar_height)
+
+        # elif self.bar_position == 'bottom':
+        #     self.setGeometry(
+        #         width_gap,
+        #         QApplication.desktop().screenGeometry().height() - taskbar_height - height_gap,
+        #         screen_width - (2 * width_gap),
+        #         taskbar_height
+        #     )
+        #     self.setFixedHeight(taskbar_height)
+
+
+        # if self.taskbar_height_warning:
+        #     self.taskbar_warning()
+        
+        # self.setObjectName('window')
+
+        # with open('config/style.css', 'r') as f:
+        #     self.css = f.read()
+        # self.setStyleSheet(self.css)
+
+
+        self.buttons = Buttons(css = self.css, trash_tooltip = self.show_tooltip_above_trash, hide_tooltip = self.hide_tooltip, launch_laucher = self.launch_laucher)
+        self.buttons.menu_button()
+
+        self.buttons.trash_button()
+        self.buttons.launcher_button()
+        
+        self.labels = Labels(self.css)
+
+        self.progress_bar = Battery(css = self.css)
+
+        self.get_window = WindowName(self)
+
+
+        self.runTimers()
+
+        os.system('cls')
+        self.rainbow_text("---------------YOU CAN NOW CLOSE THIS TERMINAL!!---------------")        
+
+
+        self.labels.sys_info_label.installEventFilter(self)
+
+    def runTimers(self):
+        with open('config/config.json', "r") as file:
+            widgets = json.load(file)
+
+            for widget in widgets['bar widgets']:
+                if 'system info' in widget:
+                    use_system_info = widget['system info'].lower()
+                
+                if 'battery' in widget:
+                    use_battery = widget['battery'].lower()
+                
+                if 'time' in widget:
+                    use_time = widget['time'].lower()
+                
+                if 'wifi' in widget:
+                    use_wifi = widget['wifi'].lower()
+
+        if use_system_info == 'true':
+            self.tooltip_timer = QTimer(self)
+            self.tooltip_timer.timeout.connect(lambda: updateTooltip(self.labels, self.bar_position))
+            self.tooltip_timer.setInterval(1000)
+            
+            timer = QTimer(self)
+            timer.timeout.connect(lambda: updateSystemInfo(self.labels, self.bar_position))
+            timer.start(1000)
+
+        if use_battery == 'true':
+            update_battery = QTimer(self)
+            update_battery.timeout.connect(lambda: updateBattery(self.progress_bar))
+            self.progress_bar.enterEvent = self.show_tooltip_above_battery
+            self.progress_bar.leaveEvent = self.hide_tooltip
+            update_battery.start(1000)
+
+
+        if use_time == 'true':
+            time_timer = QTimer(self)
+            time_timer.timeout.connect(lambda: updateTime(self.labels, self.display_date_layout, self.display_time_layout))
+            time_timer.start(1000)
+
+        
+        updateWifiLabel(self.labels)
+        if use_wifi == 'true':
+            wifi_timer = QTimer(self)
+            wifi_timer.timeout.connect(lambda: updateWifiLabel(self.labels))
+            self.labels.wifi_icon.enterEvent = self.show_tooltip_above_wifi
+            self.labels.wifi_icon.leaveEvent = self.hide_tooltip
+            wifi_timer.start(1000)
+            print("Using Wifi")
+
+    def SetupUI(self):
         self.setWindowFlags(Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint | Qt.ToolTip)
         screen_width = QApplication.desktop().screenGeometry().width()
         screen_height = QApplication.desktop().screenGeometry().height()
@@ -146,57 +275,11 @@ class Bar(QWidget):
         self.setStyleSheet(self.css)
 
 
-        self.layouts = Layouts(self.bar_position)
-
-        self.setLayout(self.layouts.main_layout)
 
         if self.use_blur:
             blur(self.winId(), Dark = True, Acrylic = True)
 
-        self.buttons = Buttons(css = self.css, trash_tooltip = self.show_tooltip_above_trash, hide_tooltip = self.hide_tooltip, launch_laucher = self.launch_laucher)
-        self.buttons.menu_button()
-
-        self.buttons.trash_button()
-        self.buttons.launcher_button()
-        
-        self.labels = Labels(self.css)
-
-        self.progress_bar = Battery(css = self.css)
-
-        self.get_window = WindowName(self)
-
-
-        self.tooltip_timer = QTimer(self)
-        self.tooltip_timer.timeout.connect(lambda: updateTooltip(self.labels, self.bar_position))
-        self.tooltip_timer.setInterval(1000)
-
-        update_battery = QTimer(self)
-        update_battery.timeout.connect(lambda: updateBattery(self.progress_bar))
-        self.progress_bar.enterEvent = self.show_tooltip_above_battery
-        self.progress_bar.leaveEvent = self.hide_tooltip
-        update_battery.start(1000)
-
-        timer = QTimer(self)
-        timer.timeout.connect(lambda: updateSystemInfo(self.labels, self.bar_position))
-        timer.start(1000)
-        
-        time_timer = QTimer(self)
-        time_timer.timeout.connect(lambda: updateTime(self.labels, self.display_date_layout, self.display_time_layout))
-        time_timer.start(1000)
-
-        
-        updateWifiLabel(self.labels)
-        wifi_timer = QTimer(self)
-        wifi_timer.timeout.connect(lambda: updateWifiLabel(self.labels))
-        self.labels.wifi_icon.enterEvent = self.show_tooltip_above_wifi
-        self.labels.wifi_icon.leaveEvent = self.hide_tooltip
-        wifi_timer.start(1000)
-
-        os.system('cls')
-        self.rainbow_text("---------------YOU CAN NOW CLOSE THIS TERMINAL!!---------------")        
-
-
-        self.labels.sys_info_label.installEventFilter(self)
+        self.setLayout(self.layouts.main_layout)
 
 
     def paintEvent(self, event):
@@ -248,10 +331,12 @@ class Bar(QWidget):
 
 if __name__ == "__main__":
     try:
-        # if not pyuac.isUserAdmin():
-        #     elevate.elevate(show_console = False)
-        #     sys.exit(0)
+        if not pyuac.isUserAdmin():
+            elevate.elevate(show_console = False)
+            sys.exit(0)
+        QApplication.setAttribute(Qt.AA_UseDesktopOpenGL)
         app = QApplication(sys.argv)
+
         fluxbar = Bar()
         fluxbar.setWindowTitle("WinBar")
         fluxbar.show()

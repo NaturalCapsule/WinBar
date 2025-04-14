@@ -19,49 +19,57 @@ def load_bar_widgets_from_json(file_path, left_layout, right_layout, middle_layo
 
 
                 if "battery" in widget:
-                    widget_item = progress_bar
+                    if widget['battery'].lower() == "true":
+                        widget_item = progress_bar
 
                 # if "wifi" in widget:
                 elif "wifi" in widget:
-                    wifi_con = labels.wifi_icon
-                    if widget.get("onlineIcon") and widget.get("offlineIcon"):
-                        labels.offline_icon = widget["offlineIcon"]
-                        labels.online_icon = widget["onlineIcon"]
+                    if widget['wifi'].lower() == 'true':
                         wifi_con = labels.wifi_icon
-                    widget_item = wifi_con
+                        if widget.get("onlineIcon") and widget.get("offlineIcon"):
+                            labels.offline_icon = widget["offlineIcon"]
+                            labels.online_icon = widget["onlineIcon"]
+                            wifi_con = labels.wifi_icon
+                        widget_item = wifi_con
 
                 elif "time" in widget:
-                    widget_item = labels.time_label
+                    if widget['time'].lower() == 'true':
+                        widget_item = labels.time_label
 
                 elif "window title" in widget:
-                    widget_item = get_window
+                    if widget['window title'].lower() == 'true':
+                        widget_item = get_window
 
                 elif "system info" in widget:
-                    widget_item = labels.sys_info_label
+                    if widget['system info'].lower() == 'true':
+                        widget_item = labels.sys_info_label
 
                 elif "menu" in widget:
-                    menu_ico = buttons.menu
-                    if widget.get("icon"):
-                        buttons.custom_menu.setText(widget["icon"])
-                        buttons.isEnabled_ = True
-                        menu_ico = buttons.custom_menu
-                    widget_item = menu_ico
+                    if widget['menu'].lower() == 'true':
+                        menu_ico = buttons.menu
+                        if widget.get("icon"):
+                            buttons.custom_menu.setText(widget["icon"])
+                            buttons.isEnabled_ = True
+                            menu_ico = buttons.custom_menu
+                        widget_item = menu_ico
 
                 elif "trash" in widget:
-                    trash_ico = buttons.trash_button_
-                    if widget.get("icon"):
-                        buttons.custom_trash.setText(widget["icon"])
-                        buttons.trash_enabled = True
-                        trash_ico = buttons.custom_trash
-                    widget_item = trash_ico
+                    if widget['trash'].lower() == 'true':
+                        trash_ico = buttons.trash_button_
+                        if widget.get("icon"):
+                            buttons.custom_trash.setText(widget["icon"])
+                            buttons.trash_enabled = True
+                            trash_ico = buttons.custom_trash
+                        widget_item = trash_ico
 
                 elif "launcher" in widget:
-                    launcher_ico = buttons.launcher_button_
-                    if widget.get("icon"):
-                        buttons.custom_launcher.setText(widget["icon"])
-                        buttons.launcher_enabled = True
-                        launcher_ico = buttons.custom_launcher
-                    widget_item = launcher_ico
+                    if widget['launcher'].lower() == 'true':
+                        launcher_ico = buttons.launcher_button_
+                        if widget.get("icon"):
+                            buttons.custom_launcher.setText(widget["icon"])
+                            buttons.launcher_enabled = True
+                            launcher_ico = buttons.custom_launcher
+                        widget_item = launcher_ico
 
                 elif "type" in widget:
                     if widget["type"] == "label":
@@ -157,7 +165,8 @@ def load_bar_widgets_from_json(file_path, left_layout, right_layout, middle_layo
         docks = DockApp().dock_buttons
 
         for widget in widgets['bar widgets']:
-            if widget.get('docks') == "show docks":
+            if widget.get('docks') == "true":
+                print("showing dock")
                 for dock_button in docks:
                     layout_target = widget['layout']
                     if layout_target == 'left':

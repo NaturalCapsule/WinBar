@@ -15,4 +15,4 @@ pyautogui
 pyaudio
 rich
 rapidfuzz
-winrt
+winsdk
