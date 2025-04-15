@@ -35,6 +35,16 @@ class Nvidia:
             #     print(f"Error initializing pynvml: {e}")
             #     return 0
 
+    def get_nvidia_used_vram():
+        try:
+            result = subprocess.run(['nvidia-smi', '--query-gpu=memory.used', '--format=csv,noheader,nounits']
+    ,
+                                    stdout=subprocess.PIPE, text=True)
+            used_vram = result.stdout.strip()
+            return f"{used_vram}"
+        except FileNotFoundError:
+            return ''
+
     def get_nvidia_gpu_usage(self):
         try:
             result = subprocess.run(['nvidia-smi', '--query-gpu=utilization.gpu', '--format=csv,noheader,nounits'],
@@ -46,7 +56,7 @@ class Nvidia:
 
 
     def get_nvidia_gpu_temperature(self):
-        self.gpu_test = ""
+        # self.gpu_test = ""
         try:
             result = subprocess.run(['nvidia-smi', '--query-gpu=temperature.gpu', '--format=csv,noheader,nounits'],
                                     stdout=subprocess.PIPE, text=True)
@@ -54,7 +64,8 @@ class Nvidia:
             return f"{temperature}"
         except FileNotFoundError:
             self.gpu_test = ""
-            return f"{self.gpu_test}"
+            # return f"{self.gpu_test}"
+            return ""
 
 
     def get_tot_vram(self):
@@ -62,9 +73,30 @@ class Nvidia:
             return "No NVIDIA GPU detected"
         
         try:
+            # handle = pynvml.nvmlDeviceGetHandleByIndex(0)
             vram_total = pynvml.nvmlDeviceGetMemoryInfo(self.handle).total
             vram_total_gb = vram_total / (1024 ** 3)
             return f"{vram_total_gb:.2f}GB"
         except pynvml.NVMLError as e:
             print(f"Error getting total VRAM: {e}")
             return 0
+
+    def get_nvidia_total_vram():
+        try:
+            result = subprocess.run(['nvidia-smi', '--query-gpu=memory.total', '--format=csv,noheader,nounits']
+    ,
+                                    stdout=subprocess.PIPE, text=True)
+            vram = result.stdout.strip()
+            return f"{vram:.1}"
+        except FileNotFoundError:
+            return ''
+
+    def get_nvidia_name():
+        try:
+            result = subprocess.run(['nvidia-smi', '--query-gpu=name', '--format=csv,noheader,nounits']
+    ,
+                                    stdout=subprocess.PIPE, text=True)
+            name = result.stdout.strip()
+            return f"{name}"
+        except FileNotFoundError:
+            return ''

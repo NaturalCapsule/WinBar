@@ -13,41 +13,49 @@ gpu_tooltip = ''
 ram_tooltip = ''
 
 
-def update_cpu_temp(labels):
+def update_cpu_temp():
     cpu_temp = Utils.get_cpu_temperature()
-    labels.cpu_temp_label.setText(str(cpu_temp))
+    return cpu_temp
 
-def update_cpu_usage(labels):
+def update_cpu_usage():
     cpu_usage = Utils.get_cpu_usage()
-    labels.cpu_usage_label.setText(str(cpu_usage))
+    # labels.cpu_usage_label.setText(str(cpu_usage))
+    return cpu_usage
 
-def update_ram_usage(labels):
+def update_ram_usage():
     ram_usage = Utils.ram_usage()
-    labels.ram_usage_label.setText(str(ram_usage))
+    # labels.ram_usage_label.setText(str(ram_usage))
+    return ram_usage
 
-def update_ram_totalGB(labels):
+def update_ram_totalGB():
     ram_tot_gb = Utils.get_total_ram_gb()
-    labels.ram_usedtotalgb_label.setText(f"{ram_tot_gb:.2f}")
+    # labels.ram_usedtotalgb_label.setText(f"{ram_tot_gb:.2f}")
+    return f"{ram_tot_gb:.2f}"
 
-def update_ram_usedGB(labels):
+def update_ram_usedGB():
     ram_used = Utils.get_used_ram_gb()
-    labels.ram_usedgb_label.setText(f"{ram_used:.2f}")
+    # labels.ram_usedgb_label.setText(f"{ram_used:.2f}")
+    return f"{ram_used:.2f}"
 
-def update_nvidia_temp(labels):
+def update_nvidia_temp():
     nvidia_temp = Nvidia.get_nvidia_gpu_temperature()
-    labels.nvidia_temp_label.setText(f"{nvidia_temp}°C")
+    # labels.nvidia_temp_label.setText(f"{nvidia_temp}°C")
+    return str(nvidia_temp)
 
-def update_nvidia_usedVram(labels):
+def update_nvidia_usedVram():
     nvidia_vram = Nvidia.get_used_vram()
-    labels.nvidia_usedvram_label.setText(nvidia_vram)
+    # labels.nvidia_usedvram_label.setText(nvidia_vram)
+    return nvidia_vram
 
-def update_nvidia_usage(labels):
+def update_nvidia_usage():
     nvidia_usage = Nvidia.get_nvidia_gpu_usage()
-    labels.nvidia_usage_label.setText(nvidia_usage)
+    # labels.nvidia_usage_label.setText(nvidia_usage)
+    return nvidia_usage
 
-def update_nvidia_totVram(labels):
+def update_nvidia_totVram():
     nvidia_totVram = Nvidia.get_tot_vram()
-    labels.nvidia_totvram_label.setText(nvidia_totVram)
+    # labels.nvidia_totvram_label.setText(nvidia_totVram)
+    return nvidia_totVram
 
 
 def updateWifiLabel(labels):

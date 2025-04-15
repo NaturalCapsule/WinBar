@@ -4,6 +4,7 @@ import configparser
 import subprocess
 import speech_recognition as sr
 import asyncio
+
 from PyQt5.QtCore import  Qt, QTimer, QPropertyAnimation, QThread, pyqtSignal, QTimer, QRect, QEasingCurve, QPoint, QSize
 from PyQt5.QtGui import QColor, QPainter, QRegion, QIcon, QPixmap
 from PyQt5.QtWidgets import QGraphicsBlurEffect, QApplication, QWidget, QLabel, QPushButton, QMenu, QAction, QLineEdit
@@ -18,10 +19,11 @@ from rich.console import Console
 from rich.text import Text
 
 from updates import *
+from media import *
+
 from date import get_calendar_html
 from screenshot import take_screenshot, take_shot
 from widgets import load_panel_widgets_from_json
-from media import *
 
 
 class MediaWorker(QThread):
@@ -214,15 +216,14 @@ class SidePanel(QWidget):
         self.button_timer = QTimer(self)
         self.button_timer.timeout.connect(self.change_button)
 
-        # self.runTimers()
+
+        
+        self.temp_timer = QTimer(self)
+        self.temp_timer.timeout.connect(lambda: update_weather(Weather, self.temp_label, self.sky_label))
+
         self.run_timer = QTimer()
         self.run_timer.timeout.connect(self.runTimers)
         self.run_timer.start(500)
-        
-        if not float(self.x_temp) >= 1.0 and not float(self.y_temp) >= 1.0:
-            temp_timer = QTimer(self)
-            temp_timer.timeout.connect(lambda: update_weather(Weather, self.temp_label, self.sky_label))
-            temp_timer.start(10000)
 
     def runTimers(self):
         title_ = c_session_info()
@@ -239,6 +240,9 @@ class SidePanel(QWidget):
 
         if not float(self.x_date) >= 1.0 and not float(self.y_date) >= 1.0:
             self.date_timer.start()
+
+        if not float(self.x_temp) >= 1.0 and not float(self.y_temp) >= 1.0:
+            self.temp_timer.start(10000)
 
 
     def rewind_action(self):

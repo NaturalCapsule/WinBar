@@ -9,103 +9,103 @@
 }
 
 #WifiLabel {
-    background-color: #2e3440;
-    color: white;
+    background-color: #ff0000;
+    color: #ff0000;
     font-size: 14px;
     border-radius: 7px;
 }
 
 #button3 {
-    background-color: #1a4bac;
-    color: #d8dee9;
+    background-color: transparent;
+    color: transparent;
     font-size: 14px;
     border-radius: 7px;
 }
 
 #button2 {
-    background-color: #26b06f;
-    color: #d8dee9;
+    background-color: transparent;
+    color: transparent;
     font-size: 14px;
     border-radius: 7px;
 }
 
 #button1 {
-    background-color: #0c89e9;
-    color: #d8dee9;
+    background-color: transparent;
+    color: transparent;
     font-size: 14px;
     border-radius: 7px;
 }
 
 #label1 {
-    background-color: #2e3440;
-    color: #2e3440;
+    background-color: transparent;
+    color: transparent;
     font-size: 14px;
     border-radius: 7px;
 }
 
 #label2 {
-    background-color: #2e3440;
-    color: #2e3440;
+    background-color: transparent;
+    color: red;
     font-size: 14px;
     border-radius: 7px;
 }
 
 #infoLabel {
-    background-color: #2e3440;
+    background-color: #ff0000;
     color: #d8dee9;
     font-size: 14px;
     border-radius: 7px;
 }
 
 #timeLabel {
-    background-color: #2e3440;
-    color: #d8dee9;
+    background-color: black;
+    color: #ff0000;
     font-size: 14px;
     border-radius: 7px;
 }
 
 #windowTitle{
-    background-color: #2e3440;
-    color: #d8dee9;
+    background-color: black;
+    color: #ff0000;
     font-size: 14px;
     border-radius: 7px;
 }
 
 #trashButton {
-    background-color: #2e3440;
-    color: #ffffff;
+    background-color: black;
+    color: #ff0000;
     border-radius: 7px;
     border: 10px;
     padding: 3px;
 }
 
 #trashButton:hover {
-    background-color: #FFFFFF;
-    color: #2e3440;
+    background-color: black;
+    color: #ff0000;
     border-radius: 7px;
     border: 10px;
     padding: 3px;
 }
 
 #menuButton {
-    background-color: #2e3440;
-    color: #ffffff;
+    background-color: black;
+    color: #ff0000;
     border-radius: 7px;
     border: 10px;
     padding: 3px;
 }
 
 #menuButton:hover {
-    background-color: #FFFFFF;
-    color: #2e3440;
+    background-color: black;
+    color: #ff0000;
     border-radius: 7px;
     border: 10px;
     padding: 3px;
 }
 
 #launcherButton {
-    background-color: #2e3440;
-    color: #ffffff;
+    background-color: black;
+    color: #ff0000;
     border-radius: 7px;
     border: 10px;
     padding: 3px;
@@ -158,14 +158,14 @@
 
 #dock {
     border: 10px;
-    background-color: #2e3440;
+    background-color: black;
     border-radius: 7px;
     padding: 10px;
 }
 
 #dock.active {
     border: 10px;
-    background-color: #e3edff;
+    background-color: black;
     border-radius: 7px;
     padding: 10px;
 }
@@ -179,10 +179,10 @@
 
 
 QToolTip {
-    background-color: #2e3440;
-    border: 1px solid #d8dee9;
+    background-color: black;
+    border: 1px solid #ff0000;
     padding: 5px;
-    color:#d8dee9;
+    color:#ff0000;
     font-size: 17px;
     border-radius: 10px;
 }
@@ -302,9 +302,10 @@ QToolTip {
 }
 
 #SideDate td.current-day {
-    background-color: #a4d4ae;
+    background-color: #0de639;
     color: white;
     font-weight: bold;
+    border-color: black;
     border-radius: 10px;
     margin: 10px;
 }
@@ -350,6 +351,140 @@ QToolTip {
     color: #FFFFFF;
     font-size: 15px;
 }
+
+
+
+#SidePanel {
+    background-color: #000000;
+    color: #ff0000;
+    border: 2px solid #aa0000;
+    padding: 10px;
+    font-family: 'Share Tech Mono', monospace;
+}
+
+#SideSearch {
+    background-color: #1a1a1a;
+    color: #ff0000;
+    border: 1px solid #ff0000;
+    font-size: 15px;
+    padding: 6px;
+}
+
+
+#ClipButton,
+#MiniGameButton,
+#CloseButton,
+#PerformanceButton {
+    background-color: #111111;
+    color: #ff0000;
+    border: 1px solid #ff0000;
+    border-radius: 8px;
+    padding: 10px;
+}
+
+
+#MediaButton,
+#rewindButton,
+#forwardButton {
+    background-color: transparent;
+    color: #ff0000;
+    border-radius: 8px;
+    padding: 10px;  
+}
+
+#ClipButton:hover,
+#MiniGameButton:hover,
+#CloseButton:hover,
+#PerformanceButton:hover {
+    background-color: #ff0000;
+    color: #000000;
+}
+
+
+
+#SideDate {
+    background-color: #111;
+    border: 1px solid #ff0000;
+    border-radius: 8px;
+    padding: 10px;
+    font-family: 'Share Tech Mono', monospace;
+    color: #ffaaaa;
+}
+
+#SideDate table {
+    width: 100%;
+    border-collapse: collapse;
+    text-align: center;
+    font-size: 16px;
+}
+
+#SideDate th {
+    padding: 5px;
+    background-color: #1f1f1f;
+    color: #ff4c4c;
+    font-weight: bold;
+}
+
+#SideDate td {
+    padding: 10px;
+}
+
+#SideDate td.current-day {
+    background-color: #ff0000;
+    color: black;
+    font-weight: bold;
+    border: 2px solid #aa0000;
+    border-radius: 10px;
+}
+
+#SideMenu {
+    background-color: #111;
+    color: #ff4444;
+    font-size: 14px;
+    border: 1px solid #ff0000;
+}
+
+#SideMenu::item:selected {
+    background-color: #ff0000;
+    color: black;
+    font-weight: bold;
+}
+
+#SideWelcome,
+#SideCity,
+#SideSky,
+#SideTemp,
+#SideMedia {
+    background-color: #000000;
+    color: #ff0000;
+    font-family: 'Share Tech Mono', monospace;
+}
+
+#SideWelcome,
+#SideCity {
+    font-size: 30px;
+}
+
+#SideWelcome {
+    font-family: 'Subspace', sans-serif;
+    font-size: 50px;
+}
+
+#SideSky,
+#SideTemp {
+    font-size: 30px;
+    font-family: 'VT323', monospace;
+}
+
+#SideCity {
+    font-family: 'VT323', monospace;
+}
+
+#SideMedia {
+    font-family: 'TRON', sans-serif;
+    font-size: 15px;
+}
+
 
 /* #label555 {
     background-color: #2e3440;

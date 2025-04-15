@@ -2,14 +2,18 @@ import json
 from updates import *
 from functools import partial
 from PyQt5.QtWidgets import QLabel, QPushButton
+from PyQt5.QtCore import QTimer
 from docks import DockApp
+from utils import Utils
+from nvidia import Nvidia
 import subprocess
 
 def cmd(command):
     subprocess.Popen(command, shell=True)
 
-def load_bar_widgets_from_json(file_path, left_layout, right_layout, middle_layout, buttons, labels, progress_bar, get_window):
+def load_bar_widgets_from_json(file_path, left_layout, right_layout, middle_layout, buttons, labels, progress_bar, get_window, timers):
     try:
+        # timers = []
         with open(file_path, "r") as file:
             widgets = json.load(file)
 
@@ -73,80 +77,153 @@ def load_bar_widgets_from_json(file_path, left_layout, right_layout, middle_layo
 
                 elif "type" in widget:
                     if widget["type"] == "label":
-                        widget_item = QLabel(widget["text"])
+
+                        if 'cputemp' in widget['text']:
+                            text = widget['text'].replace('cputemp', Utils.get_cpu_temperature())
+
+                            widget_item = QLabel(text)
+                            widget_item.setObjectName(widget["name"])
+
+                            def update_cpu_temp_(label = widget_item, template_text = widget['text']):
+                                temp = Utils.get_cpu_temperature()
+                                new_text = template_text.replace("cputemp", temp)
+                                label.setText(new_text)
+
+
+                            cpu_temp_timer = QTimer()
+                            cpu_temp_timer.timeout.connect(update_cpu_temp_)
+                            cpu_temp_timer.start(1000)
+                            timers.append(cpu_temp_timer)
+
+                            # widget_item = label
+                        elif 'cpuUsage' in widget['text']:
+                            usage_ = Utils.get_cpu_usage()
+                            text = widget['text'].replace('cpuUsage', str(usage_))
+
+                            widget_item = QLabel(text)
+                            widget_item.setObjectName(widget["name"])
+
+                            def update_cpu_usage_(label = widget_item, template_text = widget['text']):
+                                usage = Utils.get_cpu_usage()
+                                new_text = template_text.replace("cpuUsage", str(usage))
+                                label.setText(new_text)
+
+
+                            cpu_usage_timer = QTimer()
+                            cpu_usage_timer.timeout.connect(update_cpu_usage_)
+                            cpu_usage_timer.start(1000)
+                            timers.append(cpu_usage_timer)
+
+                        elif 'ramusage' in widget['text']:
+                            usage_ = Utils.ram_usage()
+                            text = widget['text'].replace('ramusage', str(usage_))
+
+                            widget_item = QLabel(text)
+                            widget_item.setObjectName(widget["name"])
+
+                            def update_ram_usage__(label = widget_item, template_text = widget['text']):
+                                usage = Utils.ram_usage()
+                                new_text = template_text.replace("ramusage", str(usage))
+                                label.setText(new_text)
+
+
+                            ram_usage_timer = QTimer()
+                            ram_usage_timer.timeout.connect(update_ram_usage__)
+                            ram_usage_timer.start(1000)
+                            timers.append(ram_usage_timer)
+
+                        elif 'ramtotalGB' in widget['text']:
+                            pass
+
+                        elif 'ramusedGB' in widget['text']:
+                            used = Utils.get_used_ram_gb()
+                            text = widget['text'].replace('ramusedGB', str(used))
+
+                            widget_item = QLabel(text)
+                            widget_item.setObjectName(widget["name"])
+
+                            def update_ram_used__(label = widget_item, template_text = widget['text']):
+                                usage = Utils.get_used_ram_gb()
+                                new_text = template_text.replace("ramusedGB", str(usage))
+                                label.setText(new_text)
+
+
+                            ram_used_timer = QTimer()
+                            ram_used_timer.timeout.connect(update_ram_used__)
+                            ram_used_timer.start(1000)
+                            timers.append(ram_used_timer)
+
+                        elif 'nvidiatemp' in widget['text']:
+                            temp = Nvidia.get_nvidia_gpu_temperature(None)
+                            text = widget['text'].replace('nvidiatemp', str(temp))
+
+                            widget_item = QLabel(text)
+                            widget_item.setObjectName(widget["name"])
+
+                            def update_nvidia_temp__(label = widget_item, template_text = widget['text']):
+                                usage = Nvidia.get_nvidia_gpu_temperature(None)
+                                new_text = template_text.replace("nvidiatemp", str(usage))
+                                label.setText(new_text)
+
+                            nvidia_temp_timer = QTimer()
+                            nvidia_temp_timer.timeout.connect(update_nvidia_temp__)
+                            nvidia_temp_timer.start(1000)
+                            timers.append(nvidia_temp_timer)
+
+                        elif 'nvidiausage' in widget['text']:
+                            temp = Nvidia.get_nvidia_gpu_usage(None)
+                            text = widget['text'].replace('nvidiausage', str(temp))
+
+                            widget_item = QLabel(text)
+                            widget_item.setObjectName(widget["name"])
+
+                            def update_nvidia_usage__(label = widget_item, template_text = widget['text']):
+                                usage = Nvidia.get_nvidia_gpu_usage(None)
+                                new_text = template_text.replace("nvidiausage", str(usage))
+                                label.setText(new_text)
+
+                            nvidia_usage_timer = QTimer()
+                            nvidia_usage_timer.timeout.connect(update_nvidia_usage__)
+                            nvidia_usage_timer.start(1000)
+                            timers.append(nvidia_usage_timer)
+
+                        elif 'nvidiaTOTVram' in widget['text']:
+                            vram = Nvidia.get_nvidia_total_vram()
+                            text = widget['text'].replace('nvidiaTOTVram', str(vram))
+
+                            widget_item = QLabel(text)
+                            widget_item.setObjectName(widget["name"])
+
+                        elif 'nvidiaName' in widget['text']:
+                            vram = Nvidia.get_nvidia_name()
+                            text = widget['text'].replace('nvidiaName', str(vram))
+
+                            widget_item = QLabel(text)
+                            widget_item.setObjectName(widget["name"])
+
+
+
+                        elif 'nvidiaUSEDVram' in widget['text']:
+                            temp = Nvidia.get_nvidia_used_vram()
+                            text = widget['text'].replace('nvidiaUSEDVram', str(temp))
+
+                            widget_item = QLabel(text)
+                            widget_item.setObjectName(widget["name"])
+
+                            def update_nvidia_vram__(label = widget_item, template_text = widget['text']):
+                                usage = Nvidia.get_nvidia_used_vram()
+                                new_text = template_text.replace("nvidiaUSEDVram", str(usage))
+                                label.setText(new_text)
+
+                            nvidia_used_timer = QTimer()
+                            nvidia_used_timer.timeout.connect(update_nvidia_vram__)
+                            nvidia_used_timer.start(1000)
+                            timers.append(nvidia_used_timer)
+
+
+                        else:
+                            widget_item = QLabel(widget["text"])
                         widget_item.setObjectName(widget["name"])
-                        # if widget['text'] == 'cputemp':
-                #             timer = QTimer(self)
-                #             timer.timeout.connect(self.update_cpu_temp)
-                #             timer.start(1000)
-
-                #             widget_item = self.cpu_temp_label
-                #         elif widget['text'] == 'cpuUsage':
-                #             timer = QTimer(self)
-                #             timer.timeout.connect(self.update_cpu_usage)
-                #             timer.start(1000)
-
-                #             widget_item = labels.cpu_usage_label
-
-                #         elif widget['text'] == 'ramusage':
-                #             timer = QTimer(self)
-                #             timer.timeout.connect(self.update_ram_usage)
-                #             timer.start(1000)
-
-                #             widget_item = labels.ram_usage_label
-
-                #         elif widget['text'] == 'ramtotalGB':
-                #             timer = QTimer(self)
-                #             timer.timeout.connect(self.update_ram_totalGB)
-                #             timer.start(1000)
-
-                #             widget_item = labels.ram_usedtotalgb_label
-
-                #         elif widget['text'] == 'ramusedGB':
-                #             timer = QTimer(self)
-                #             timer.timeout.connect(self.update_ram_usedGB)
-                #             timer.start(1000)
-
-                #             widget_item = labels.ram_usedgb_label
-
-                #         elif widget['text'] == 'ramusage':
-                #             timer = QTimer(self)
-                #             timer.timeout.connect(self.update_ram_usage)
-                #             timer.start(1000)
-
-                #             widget_item = labels.ram_usage_label
-
-                #         elif widget['text'] == 'nvidiatemp':
-                #             timer = QTimer(self)
-                #             timer.timeout.connect(self.update_nvidia_temp)
-                #             timer.start(1000)
-
-                #             widget_item = labels.nvidia_temp_label
-
-                #         elif widget['text'] == 'nvidiausage':
-                #             timer = QTimer(self)
-                #             timer.timeout.connect(self.update_nvidia_usage)
-                #             timer.start(1000)
-
-                #             widget_item = labels.nvidia_usage_label
-
-                #         elif widget['text'] == 'nvidiaTOTVram':
-                #             timer = QTimer(self)
-                #             timer.timeout.connect(self.update_nvidia_totVram)
-                #             timer.start(1000)
-
-                #             widget_item = labels.nvidia_totvram_label
-
-                #         elif widget['text'] == 'nvidiaUSEDVram':
-                #             timer = QTimer(self)
-                #             timer.timeout.connect(self.update_nvidia_usedVram)
-                #             timer.start(1000)
-
-                #             widget_item = labels.nvidia_usedvram_label
-
-                        # else:
-                        #     widget_item = QLabel(widget["text"])
-                        # widget_item.setObjectName(widget["name"])
                         
                     elif widget["type"] == "button":
                         widget_item = QPushButton(widget["text"])

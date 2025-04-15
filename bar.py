@@ -32,10 +32,11 @@ class Bar(QWidget):
         self.initUI()
         if self.shrink_desktop:
             register_as_taskbar(QApplication, self.taskbar_height, self.widthGap, self.winId, self.bar_position)
-        load_bar_widgets_from_json('config/config.json', self.layouts.left_layout, self.layouts.right_layout, self.layouts.middle_layout, self.buttons, self.labels, self.progress_bar, self.get_window)
+        self.custom_timer = []
+        load_bar_widgets_from_json('config/config.json', self.layouts.left_layout, self.layouts.right_layout, self.layouts.middle_layout, self.buttons, self.labels, self.progress_bar, self.get_window, self.custom_timer)
 
 
-        subprocess.Popen(["python", "panel.py"])
+        # subprocess.Popen(["python", "panel.py"])
         self.monitor_exit_thread = Thread(target=self.exit_function, daemon=True)
         self.monitor_exit_thread.start()
 
@@ -164,8 +165,8 @@ class Bar(QWidget):
 
         self.runTimers()
 
-        os.system('cls')
-        self.rainbow_text("---------------YOU CAN NOW CLOSE THIS TERMINAL!!---------------")        
+        # os.system('cls')
+        # self.rainbow_text("---------------YOU CAN NOW CLOSE THIS TERMINAL!!---------------")        
 
 
         self.labels.sys_info_label.installEventFilter(self)
@@ -331,9 +332,9 @@ class Bar(QWidget):
 
 if __name__ == "__main__":
     try:
-        if not pyuac.isUserAdmin():
-            elevate.elevate(show_console = False)
-            sys.exit(0)
+        # if not pyuac.isUserAdmin():
+        #     elevate.elevate(show_console = False)
+        #     sys.exit(0)
         QApplication.setAttribute(Qt.AA_UseDesktopOpenGL)
         app = QApplication(sys.argv)
 
