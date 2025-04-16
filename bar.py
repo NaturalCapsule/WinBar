@@ -36,7 +36,7 @@ class Bar(QWidget):
         load_bar_widgets_from_json('config/config.json', self.layouts.left_layout, self.layouts.right_layout, self.layouts.middle_layout, self.buttons, self.labels, self.progress_bar, self.get_window, self.custom_timer)
 
 
-        # subprocess.Popen(["python", "panel.py"])
+        subprocess.Popen(["python", "panel.py"])
         self.monitor_exit_thread = Thread(target=self.exit_function, daemon=True)
         self.monitor_exit_thread.start()
 
@@ -95,60 +95,6 @@ class Bar(QWidget):
     def initUI(self):
         self.layouts = Layouts(self.bar_position)
         self.SetupUI()
-        # self.setWindowFlags(Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint | Qt.ToolTip)
-        # screen_width = QApplication.desktop().screenGeometry().width()
-        # screen_height = QApplication.desktop().screenGeometry().height()
-
-        # taskbar_height = self.taskbar_height
-        # width_gap = self.widthGap
-        # height_gap = self.heightGap
-
-        # if self.bar_position == 'top':
-        #     self.setGeometry(
-        #         width_gap,
-        #         height_gap,
-        #         screen_width - (2 * width_gap),
-        #         taskbar_height
-        #     )
-        #     self.setFixedHeight(taskbar_height)
-        
-        # elif self.bar_position == 'left':
-        #     self.setGeometry(
-        #         height_gap,
-        #         width_gap,
-        #         taskbar_height,
-        #         screen_height - (2 * width_gap)
-        #     )
-        #     self.setFixedWidth(taskbar_height)
-
-        # elif self.bar_position == 'right':
-        #     self.setGeometry(
-        #         screen_width - taskbar_height - width_gap,
-        #         height_gap,
-        #         taskbar_height,
-        #         screen_height - (2 * width_gap)
-        #     )
-        #     self.setFixedWidth(taskbar_height)
-
-        # elif self.bar_position == 'bottom':
-        #     self.setGeometry(
-        #         width_gap,
-        #         QApplication.desktop().screenGeometry().height() - taskbar_height - height_gap,
-        #         screen_width - (2 * width_gap),
-        #         taskbar_height
-        #     )
-        #     self.setFixedHeight(taskbar_height)
-
-
-        # if self.taskbar_height_warning:
-        #     self.taskbar_warning()
-        
-        # self.setObjectName('window')
-
-        # with open('config/style.css', 'r') as f:
-        #     self.css = f.read()
-        # self.setStyleSheet(self.css)
-
 
         self.buttons = Buttons(css = self.css, trash_tooltip = self.show_tooltip_above_trash, hide_tooltip = self.hide_tooltip, launch_laucher = self.launch_laucher)
         self.buttons.menu_button()
@@ -165,8 +111,8 @@ class Bar(QWidget):
 
         self.runTimers()
 
-        # os.system('cls')
-        # self.rainbow_text("---------------YOU CAN NOW CLOSE THIS TERMINAL!!---------------")        
+        os.system('cls')
+        self.rainbow_text("---------------YOU CAN NOW CLOSE THIS TERMINAL!!---------------")        
 
 
         self.labels.sys_info_label.installEventFilter(self)

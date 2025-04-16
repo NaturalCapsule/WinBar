@@ -3,6 +3,7 @@ from updates import *
 from functools import partial
 from PyQt5.QtWidgets import QLabel, QPushButton
 from PyQt5.QtCore import QTimer
+
 from docks import DockApp
 from utils import Utils
 from nvidia import Nvidia

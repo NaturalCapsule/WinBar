@@ -11,7 +11,6 @@ class WindowName(QLabel):
 
         self.setObjectName('windowTitle')
         
-        # self.setFixedSize(150, 18)
 
         with open('config/style.css', 'r') as file:
             css = file.read()
